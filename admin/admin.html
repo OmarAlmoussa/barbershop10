@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - MOON Barbershop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Admin Panel</h1>
+        <button id="logout">Logout</button>
+    </header>
+    <main>
+        <section id="dashboard">
+            <h2>Dashboard</h2>
+            <p>Today's Bookings: <span id="today-bookings">0</span></p>
+            <p>Total Revenue: <span id="total-revenue">0 NOK</span></p>
+        </section>
+        <section id="services">
+            <h2>Manage Services</h2>
+            <button id="add-service-btn">Add Service</button>
+            <div id="services-list"></div>
+        </section>
+        <section id="team">
+            <h2>Manage Team</h2>
+            <button id="add-team-btn">Add Team Member</button>
+            <div id="team-list"></div>
+        </section>
+    </main>
+    <script src="admin.js"></script>
+</body>
+</html>
