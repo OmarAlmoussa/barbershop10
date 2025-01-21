@@ -4,51 +4,131 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Appointment - MOON Barbershop</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="booking.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <header>
-        <h1>Book Your Appointment</h1>
-        <a href="index.html" class="btn">Back to Home</a>
+        <nav>
+            <div class="logo">
+                <h1>MOON Barbershop</h1>
+            </div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="booking.html" class="active">Book Appointment</a></li>
+                <li><a href="#" id="about-link">About</a></li>
+                <li><a href="#" id="contact-link">Contact</a></li>
+            </ul>
+        </nav>
     </header>
+
     <main>
-        <section id="booking-form">
+        <div class="booking-container">
             <form id="appointment-form">
-                <div class="form-group">
-                    <label for="service">Select Service:</label>
-                    <select id="service" required>
-                        <!-- Services will be loaded dynamically -->
-                    </select>
+                <div class="form-section">
+                    <h2><i class="fas fa-cut"></i> Select Service</h2>
+                    <div class="form-group">
+                        <select id="service" required>
+                            <option value="">Select a service...</option>
+                            <!-- Services will be loaded dynamically -->
+                        </select>
+                        <div id="service-details" class="details-box"></div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="customerName">Your Name:</label>
-                    <input type="text" id="customerName" required>
+
+                <div class="form-section">
+                    <h2><i class="fas fa-user"></i> Choose Barber</h2>
+                    <div class="form-group">
+                        <select id="barber" required>
+                            <option value="">Select a barber...</option>
+                            <!-- Barbers will be loaded dynamically -->
+                        </select>
+                        <div id="barber-details" class="details-box"></div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="date">Date:</label>
-                    <input type="date" id="date" required>
+
+                <div class="form-section">
+                    <h2><i class="fas fa-user-circle"></i> Your Information</h2>
+                    <div class="form-group">
+                        <label for="customerName">Your Name</label>
+                        <input type="text" id="customerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerEmail">Your Email</label>
+                        <input type="email" id="customerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerPhone">Your Phone</label>
+                        <input type="tel" id="customerPhone" required>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="time">Time:</label>
-                    <select id="time" required>
-                        <option value="09:00">09:00</option>
-                        <option value="10:00">10:00</option>
-                        <option value="11:00">11:00</option>
-                        <option value="12:00">12:00</option>
-                        <option value="13:00">13:00</option>
-                        <option value="14:00">14:00</option>
-                        <option value="15:00">15:00</option>
-                        <option value="16:00">16:00</option>
-                    </select>
+
+                <div class="form-section">
+                    <h2><i class="fas fa-calendar-alt"></i> Date & Time</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="date">Select Date</label>
+                            <input type="date" id="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="time">Select Time</label>
+                            <select id="time" required>
+                                <option value="">Choose a time...</option>
+                                <option value="09:00">09:00</option>
+                                <option value="10:00">10:00</option>
+                                <option value="11:00">11:00</option>
+                                <option value="12:00">12:00</option>
+                                <option value="13:00">13:00</option>
+                                <option value="14:00">14:00</option>
+                                <option value="15:00">15:00</option>
+                                <option value="16:00">16:00</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit">Book Now</button>
+
+                <div class="form-section">
+                    <h2><i class="fas fa-comment"></i> Additional Notes</h2>
+                    <div class="form-group">
+                        <textarea id="notes" rows="3" placeholder="Any special requests or notes?"></textarea>
+                    </div>
+                </div>
+
+                <div class="booking-summary">
+                    <h3>Booking Summary</h3>
+                    <div id="summary-details"></div>
+                    <div class="total-price">Total: <span id="total-price">0.00 NOK</span></div>
+                </div>
+
+                <button type="submit" class="btn btn-block">
+                    <i class="fas fa-calendar-check"></i> Confirm Booking
+                </button>
             </form>
-        </section>
+        </div>
     </main>
+
     <footer>
-        <p>&copy; 2025 MOON Barbershop</p>
+        <div class="footer-content">
+            <div class="contact-info">
+                <h3>Contact Us</h3>
+                <p><i class="fas fa-envelope"></i> info@moonbarbershop.com</p>
+                <p><i class="fas fa-phone"></i> +47 123 45 678</p>
+                <p><i class="fas fa-map-marker-alt"></i> Oslo, Norway</p>
+            </div>
+            <div class="business-hours">
+                <h3>Business Hours</h3>
+                <p><i class="fas fa-clock"></i> Monday - Friday: 9:00 - 17:00</p>
+                <p><i class="fas fa-clock"></i> Saturday: 10:00 - 16:00</p>
+                <p><i class="fas fa-clock"></i> Sunday: Closed</p>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>&copy; 2025 MOON Barbershop. All rights reserved.</p>
+        </div>
     </footer>
+
     <script src="js/booking.js"></script>
 </body>
 </html>

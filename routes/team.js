@@ -24,4 +24,17 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Delete Team Member
+router.delete('/:id', async (req, res) => {
+    try {
+        const member = await TeamMember.findByIdAndDelete(req.params.id);
+        if (!member) {
+            return res.status(404).json({ message: 'Team member not found' });
+        }
+        res.json({ message: 'Team member deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;
