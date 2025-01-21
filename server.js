@@ -498,19 +498,41 @@ app.get('/api/team', async (req, res) => {
 
 app.post('/api/team', auth, async (req, res) => {
     try {
-        const member = new TeamMember(req.body);
-        await member.save();
+        const { name, email, role, bio, photo } = req.body;
         
+        // Validate required fields
+        if (!name || !email || !role || !bio) {
+            return res.status(400).json({ 
+                message: 'Name, email, role, and bio are required fields' 
+            });
+        }
+
+        // Create new team member
+        const teamMember = new TeamMember({
+            name,
+            email,
+            role,
+            bio,
+            photo: photo || null
+        });
+
+        await teamMember.save();
+
         // Log activity
         const activity = new Activity({
-            description: `New team member added: ${member.name}`,
-            timestamp: new Date()
+            user: req.user.email,
+            action: 'CREATE_TEAM_MEMBER',
+            details: `Created team member: ${name}`
         });
         await activity.save();
-        
-        res.status(201).json(member);
+
+        res.status(201).json(teamMember);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error creating team member:', error);
+        res.status(500).json({ 
+            message: 'Error creating team member',
+            error: error.message 
+        });
     }
 });
 
@@ -1244,27 +1266,43 @@ app.put('/api/business-hours', auth, async (req, res) => {
 });
 
 // Team Members API
-app.post('/api/team', auth, upload.single('image'), async (req, res) => {
+app.post('/api/team', auth, async (req, res) => {
     try {
-        const { name, role, description } = req.body;
+        const { name, email, role, bio, photo } = req.body;
+        
+        // Validate required fields
+        if (!name || !email || !role || !bio) {
+            return res.status(400).json({ 
+                message: 'Name, email, role, and bio are required fields' 
+            });
+        }
+
+        // Create new team member
         const teamMember = new TeamMember({
             name,
+            email,
             role,
-            description,
-            image: req.file ? `/uploads/${req.file.filename}` : null
+            bio,
+            photo: photo || null
         });
+
         await teamMember.save();
-        
+
         // Log activity
         const activity = new Activity({
-            description: `Added new team member: ${name}`,
-            timestamp: new Date()
+            user: req.user.email,
+            action: 'CREATE_TEAM_MEMBER',
+            details: `Created team member: ${name}`
         });
         await activity.save();
-        
+
         res.status(201).json(teamMember);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error('Error creating team member:', error);
+        res.status(500).json({ 
+            message: 'Error creating team member',
+            error: error.message 
+        });
     }
 });
 
