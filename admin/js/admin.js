@@ -1,69 +1,87 @@
-// Check if user is logged in
+// Check authentication on page load
 if (!localStorage.getItem('token')) {
-    window.location.href = '/admin/login';
+    window.location.href = '/admin/login.html';
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Hide all sections except dashboard initially
-    document.querySelectorAll('.section').forEach(section => {
-        if (section.id !== 'dashboard-section') {
-            section.style.display = 'none';
-        }
+// Improved Navigation with Error Handling
+function setupNavigation() {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('.section');
+
+    if (!navLinks || !sections) {
+        console.error('Navigation setup failed: Links or sections missing.');
+        return;
+    }
+
+    navLinks.forEach(link => {
+        if (link.id === 'logout') return;
+
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.dataset.section;
+            const targetSection = document.getElementById(targetId);
+
+            if (!targetSection) {
+                console.error(`Navigation error: Section with ID '${targetId}' not found.`);
+                alert('Navigation error: Section not found.');
+                return;
+            }
+
+            // Remove active class from all links and sections
+            navLinks.forEach(l => l.classList.remove('active'));
+            sections.forEach(s => s.style.display = 'none');
+
+            // Add active class to clicked link and show corresponding section
+            link.classList.add('active');
+            targetSection.style.display = 'block';
+        });
     });
+}
 
-    // Add click handlers for navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-        if (link.id !== 'logout') {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const sectionId = this.dataset.section;
-                
-                if (sectionId) {
-                    // Hide all sections
-                    document.querySelectorAll('.section').forEach(section => {
-                        section.style.display = 'none';
-                    });
-                    
-                    // Show selected section
-                    const selectedSection = document.getElementById(sectionId);
-                    if (selectedSection) {
-                        selectedSection.style.display = 'block';
-                    }
-                    
-                    // Update active state in navigation
-                    document.querySelectorAll('.nav-link').forEach(navLink => {
-                        navLink.classList.remove('active');
-                    });
-                    this.classList.add('active');
-                }
-            });
+// Token Validation Wrapper
+async function fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Session expired. Please log in again.');
+        window.location.href = '/admin/login.html';
+        return;
+    }
+
+    options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+    };
+
+    try {
+        const response = await fetch(url, options);
+
+        if (response.status === 401) {
+            alert('Unauthorized access. Redirecting to login.');
+            localStorage.removeItem('token');
+            window.location.href = '/admin/login.html';
+            return;
         }
-    });
 
-    // Load initial data
-    loadServices();
-    loadTeam();
-    loadBookings();
-});
-
-// Logout handler
-document.getElementById('logout').addEventListener('click', (e) => {
-    e.preventDefault();
-    localStorage.removeItem('token');
-    window.location.href = '/admin/login';
-});
+        return response;
+    } catch (error) {
+        console.error('Fetch error:', error);
+        alert('An error occurred while communicating with the server. Please try again.');
+    }
+}
 
 // Services Management
 async function loadServices() {
     try {
-        const response = await fetch('/api/services', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
+        const response = await fetchWithAuth('/api/services');
+        if (!response || !response.ok) throw new Error('Failed to fetch services');
+
         const services = await response.json();
         const tbody = document.getElementById('services-table-body');
+        if (!tbody) {
+            console.error('Services table body not found');
+            return;
+        }
+
         tbody.innerHTML = '';
         
         services.forEach(service => {
@@ -102,12 +120,8 @@ document.getElementById('add-service-form').addEventListener('submit', async (e)
     e.preventDefault();
     const formData = new FormData(e.target);
     try {
-        const response = await fetch('/api/services', {
+        const response = await fetchWithAuth('/api/services', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
             body: JSON.stringify({
                 name: formData.get('name'),
                 description: formData.get('description'),
@@ -133,11 +147,7 @@ document.addEventListener('click', async (e) => {
     if (e.target.closest('.edit-service')) {
         const serviceId = e.target.closest('.edit-service').dataset.id;
         try {
-            const response = await fetch(`/api/services/${serviceId}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
+            const response = await fetchWithAuth(`/api/services/${serviceId}`);
             const service = await response.json();
             
             const form = document.getElementById('edit-service-form');
@@ -160,12 +170,8 @@ document.getElementById('edit-service-form').addEventListener('submit', async (e
     const serviceId = formData.get('serviceId');
     
     try {
-        const response = await fetch(`/api/services/${serviceId}`, {
+        const response = await fetchWithAuth(`/api/services/${serviceId}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
             body: JSON.stringify({
                 name: formData.get('name'),
                 description: formData.get('description'),
@@ -191,11 +197,8 @@ document.addEventListener('click', async (e) => {
         if (confirm('Are you sure you want to delete this service?')) {
             const serviceId = e.target.closest('.delete-service').dataset.id;
             try {
-                const response = await fetch(`/api/services/${serviceId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                const response = await fetchWithAuth(`/api/services/${serviceId}`, {
+                    method: 'DELETE'
                 });
                 
                 if (response.ok) {
@@ -214,13 +217,16 @@ document.addEventListener('click', async (e) => {
 // Team Management
 async function loadTeam() {
     try {
-        const response = await fetch('/api/team', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
+        const response = await fetchWithAuth('/api/team');
+        if (!response || !response.ok) throw new Error('Failed to fetch team members');
+
         const team = await response.json();
         const tbody = document.getElementById('team-table-body');
+        if (!tbody) {
+            console.error('Team table body not found');
+            return;
+        }
+
         tbody.innerHTML = '';
         
         team.forEach(member => {
@@ -264,11 +270,8 @@ document.getElementById('add-team-form').addEventListener('submit', async (e) =>
     e.preventDefault();
     const formData = new FormData(e.target);
     try {
-        const response = await fetch('/api/team', {
+        const response = await fetchWithAuth('/api/team', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
             body: formData
         });
         
@@ -290,11 +293,7 @@ document.addEventListener('click', async (e) => {
     if (e.target.closest('.edit-team')) {
         const memberId = e.target.closest('.edit-team').dataset.id;
         try {
-            const response = await fetch(`/api/team/${memberId}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
+            const response = await fetchWithAuth(`/api/team/${memberId}`);
             const member = await response.json();
             
             const form = document.getElementById('edit-team-form');
@@ -317,11 +316,8 @@ document.getElementById('edit-team-form').addEventListener('submit', async (e) =
     const memberId = formData.get('memberId');
     
     try {
-        const response = await fetch(`/api/team/${memberId}`, {
+        const response = await fetchWithAuth(`/api/team/${memberId}`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
             body: formData
         });
         
@@ -343,11 +339,8 @@ document.addEventListener('click', async (e) => {
         if (confirm('Are you sure you want to delete this team member?')) {
             const memberId = e.target.closest('.delete-team').dataset.id;
             try {
-                const response = await fetch(`/api/team/${memberId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                const response = await fetchWithAuth(`/api/team/${memberId}`, {
+                    method: 'DELETE'
                 });
                 
                 if (response.ok) {
@@ -366,13 +359,16 @@ document.addEventListener('click', async (e) => {
 // Bookings Management
 async function loadBookings() {
     try {
-        const response = await fetch('/api/bookings', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
+        const response = await fetchWithAuth('/api/bookings');
+        if (!response || !response.ok) throw new Error('Failed to fetch bookings');
+
         const bookings = await response.json();
         const tbody = document.getElementById('bookings-table-body');
+        if (!tbody) {
+            console.error('Bookings table body not found');
+            return;
+        }
+
         tbody.innerHTML = '';
         
         bookings.forEach(booking => {
@@ -414,7 +410,7 @@ async function loadBookings() {
 }
 
 function getStatusBadgeColor(status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
         case 'pending': return 'warning';
         case 'confirmed': return 'primary';
         case 'completed': return 'success';
@@ -428,12 +424,8 @@ document.getElementById('add-booking-form').addEventListener('submit', async (e)
     e.preventDefault();
     const formData = new FormData(e.target);
     try {
-        const response = await fetch('/api/bookings', {
+        const response = await fetchWithAuth('/api/bookings', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
             body: JSON.stringify({
                 customerName: formData.get('customerName'),
                 customerEmail: formData.get('customerEmail'),
@@ -465,11 +457,7 @@ document.addEventListener('click', async (e) => {
     if (e.target.closest('.edit-booking')) {
         const bookingId = e.target.closest('.edit-booking').dataset.id;
         try {
-            const response = await fetch(`/api/bookings/${bookingId}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
+            const response = await fetchWithAuth(`/api/bookings/${bookingId}`);
             const booking = await response.json();
             
             const form = document.getElementById('edit-booking-form');
@@ -498,12 +486,8 @@ document.getElementById('edit-booking-form').addEventListener('submit', async (e
     const bookingId = formData.get('bookingId');
     
     try {
-        const response = await fetch(`/api/bookings/${bookingId}`, {
+        const response = await fetchWithAuth(`/api/bookings/${bookingId}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
             body: JSON.stringify({
                 customerName: formData.get('customerName'),
                 customerEmail: formData.get('customerEmail'),
@@ -535,11 +519,8 @@ document.addEventListener('click', async (e) => {
         if (confirm('Are you sure you want to delete this booking?')) {
             const bookingId = e.target.closest('.delete-booking').dataset.id;
             try {
-                const response = await fetch(`/api/bookings/${bookingId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                const response = await fetchWithAuth(`/api/bookings/${bookingId}`, {
+                    method: 'DELETE'
                 });
                 
                 if (response.ok) {
@@ -553,4 +534,37 @@ document.addEventListener('click', async (e) => {
             }
         }
     }
+});
+
+// Logout setup
+function setupLogout() {
+    const logoutButton = document.getElementById('logout');
+    if (!logoutButton) {
+        console.error('Logout button not found.');
+        return;
+    }
+
+    logoutButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.removeItem('token');
+        alert('Logged out successfully. Redirecting to login.');
+        window.location.href = '/admin/login.html';
+    });
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    setupNavigation();
+    setupLogout();
+    
+    // Show dashboard section by default
+    const dashboardSection = document.getElementById('dashboard-section');
+    if (dashboardSection) {
+        dashboardSection.style.display = 'block';
+    }
+
+    // Load initial data
+    loadServices();
+    loadTeam();
+    loadBookings();
 });
