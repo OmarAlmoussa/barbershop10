@@ -203,30 +203,31 @@
                     <h5 class="modal-title">Add Team Member</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="add-team-form">
-                    <div class="modal-body">
+                <div class="modal-body">
+                    <form id="add-team-form">
                         <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input type="text" name="name" class="form-control" required>
+                            <label for="team-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="team-name" name="name" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <input type="text" name="role" class="form-control" required>
+                            <label for="team-role" class="form-label">Role</label>
+                            <input type="text" class="form-control" id="team-role" name="role" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea name="description" class="form-control" required></textarea>
+                            <label for="team-description" class="form-label">Description</label>
+                            <textarea class="form-control" id="team-description" name="description" required></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Photo</label>
-                            <input type="file" name="image" class="form-control" accept="image/*">
+                            <label for="team-photo" class="form-label">Photo (Optional)</label>
+                            <input type="file" class="form-control" id="team-photo" name="photo" accept="image/*">
+                            <small class="text-muted">Recommended size: 300x300 pixels</small>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Team Member</button>
-                    </div>
-                </form>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Member</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -239,31 +240,32 @@
                     <h5 class="modal-title">Edit Team Member</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="edit-team-form">
-                    <input type="hidden" name="memberId">
-                    <div class="modal-body">
+                <div class="modal-body">
+                    <form id="edit-team-form">
+                        <input type="hidden" name="memberId" id="edit-team-id">
                         <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input type="text" name="name" class="form-control" required>
+                            <label for="edit-team-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="edit-team-name" name="name" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <input type="text" name="role" class="form-control" required>
+                            <label for="edit-team-role" class="form-label">Role</label>
+                            <input type="text" class="form-control" id="edit-team-role" name="role" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea name="description" class="form-control" required></textarea>
+                            <label for="edit-team-description" class="form-label">Description</label>
+                            <textarea class="form-control" id="edit-team-description" name="description" required></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Photo</label>
-                            <input type="file" name="image" class="form-control" accept="image/*">
+                            <label for="edit-team-photo" class="form-label">Photo (Optional)</label>
+                            <input type="file" class="form-control" id="edit-team-photo" name="photo" accept="image/*">
+                            <small class="text-muted">Leave empty to keep existing photo</small>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update Team Member</button>
-                    </div>
-                </form>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update Member</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

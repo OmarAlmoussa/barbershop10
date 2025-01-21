@@ -268,20 +268,56 @@ async function loadTeam() {
 // Add Team Member
 document.getElementById('add-team-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
+
+    const formData = {
+        name: document.getElementById('team-name').value,
+        role: document.getElementById('team-role').value,
+        description: document.getElementById('team-description').value,
+        photo: null
+    };
+
+    // Handle photo upload
+    const photoInput = document.getElementById('team-photo');
+    if (photoInput.files.length > 0) {
+        const file = photoInput.files[0];
+        // Convert photo to base64
+        try {
+            const base64Photo = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            formData.photo = base64Photo;
+        } catch (error) {
+            console.error('Error converting photo to base64:', error);
+            alert('Error processing photo. Please try again.');
+            return;
+        }
+    }
+
+    console.log('Submitting team member data:', { ...formData, photo: formData.photo ? 'base64_data' : null });
+
     try {
         const response = await fetchWithAuth('/api/team', {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
         });
         
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('addTeamModal')).hide();
-            e.target.reset();
-            loadTeam();
-        } else {
-            throw new Error('Failed to add team member');
+        if (!response.ok) {
+            const errorDetails = await response.json();
+            console.error('Server error:', errorDetails);
+            alert(errorDetails.message || 'Failed to add team member.');
+            return;
         }
+
+        $('#addTeamModal').modal('hide');
+        e.target.reset();
+        loadTeam();
+        alert('Team member added successfully!');
     } catch (error) {
         console.error('Error adding team member:', error);
         alert('Error adding team member. Please try again.');
@@ -312,21 +348,57 @@ document.addEventListener('click', async (e) => {
 
 document.getElementById('edit-team-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const memberId = formData.get('memberId');
-    
+    const memberId = document.getElementById('edit-team-id').value;
+
+    const formData = {
+        name: document.getElementById('edit-team-name').value,
+        role: document.getElementById('edit-team-role').value,
+        description: document.getElementById('edit-team-description').value,
+        photo: null
+    };
+
+    // Handle photo upload
+    const photoInput = document.getElementById('edit-team-photo');
+    if (photoInput.files.length > 0) {
+        const file = photoInput.files[0];
+        // Convert photo to base64
+        try {
+            const base64Photo = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            formData.photo = base64Photo;
+        } catch (error) {
+            console.error('Error converting photo to base64:', error);
+            alert('Error processing photo. Please try again.');
+            return;
+        }
+    }
+
+    console.log('Submitting updated team member data:', { ...formData, photo: formData.photo ? 'base64_data' : null });
+
     try {
         const response = await fetchWithAuth(`/api/team/${memberId}`, {
             method: 'PUT',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
         });
         
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('editTeamModal')).hide();
-            loadTeam();
-        } else {
-            throw new Error('Failed to update team member');
+        if (!response.ok) {
+            const errorDetails = await response.json();
+            console.error('Server error:', errorDetails);
+            alert(errorDetails.message || 'Failed to update team member.');
+            return;
         }
+
+        $('#editTeamModal').modal('hide');
+        e.target.reset();
+        loadTeam();
+        alert('Team member updated successfully!');
     } catch (error) {
         console.error('Error updating team member:', error);
         alert('Error updating team member. Please try again.');
