@@ -6,6 +6,8 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const fs = require('fs');
+const json2csv = require('json2csv').Parser;
 dotenv.config();
 
 const app = express();
@@ -34,6 +36,11 @@ const Activity = require('./models/Activity');
 const Gallery = require('./models/Gallery');
 const Contact = require('./models/Contact');
 const Settings = require('./models/Settings');
+const Review = require('./models/Review');
+const EmailCampaign = require('./models/EmailCampaign');
+const SmsCampaign = require('./models/SmsCampaign');
+const Product = require('./models/Product');
+const Shift = require('./models/Shift');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -220,6 +227,161 @@ app.put('/api/admin/bookings/:id', auth, async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Error updating booking' });
     }
+});
+
+// Admin Dashboard API
+app.get('/api/dashboard', auth, async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const [
+            todayBookings,
+            totalRevenue,
+            activeServices,
+            teamMembers
+        ] = await Promise.all([
+            Booking.countDocuments({ date: { $gte: today } }),
+            Booking.aggregate([
+                { $match: { status: 'completed' } },
+                { $lookup: { from: 'services', localField: 'service', foreignField: '_id', as: 'service' } },
+                { $unwind: '$service' },
+                { $group: { _id: null, total: { $sum: '$service.price' } } }
+            ]),
+            Service.countDocuments(),
+            TeamMember.countDocuments()
+        ]);
+
+        res.json({
+            todayBookings,
+            totalRevenue: totalRevenue[0]?.total || 0,
+            activeServices,
+            teamMembers
+        });
+    } catch (error) {
+        console.error('Dashboard Error:', error);
+        res.status(500).json({ message: 'Error fetching dashboard data' });
+    }
+});
+
+// Enhanced Services API
+app.post('/api/services', auth, async (req, res) => {
+    try {
+        const { name, description, price } = req.body;
+        const service = new Service({ name, description, price });
+        await service.save();
+        res.status(201).json(service);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+app.put('/api/services/:id', auth, async (req, res) => {
+    try {
+        const service = await Service.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+        if (!service) {
+            return res.status(404).json({ message: 'Service not found' });
+        }
+        res.json(service);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+app.delete('/api/services/:id', auth, async (req, res) => {
+    try {
+        const service = await Service.findByIdAndDelete(req.params.id);
+        if (!service) {
+            return res.status(404).json({ message: 'Service not found' });
+        }
+        res.json({ message: 'Service deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Enhanced Team Members API
+app.get('/api/team', auth, async (req, res) => {
+    try {
+        const team = await TeamMember.find();
+        res.json(team);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+app.post('/api/team', auth, async (req, res) => {
+    try {
+        const { name, role, email } = req.body;
+        const teamMember = new TeamMember({ name, role, email });
+        await teamMember.save();
+        res.status(201).json(teamMember);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+app.put('/api/team/:id', auth, async (req, res) => {
+    try {
+        const teamMember = await TeamMember.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+        if (!teamMember) {
+            return res.status(404).json({ message: 'Team member not found' });
+        }
+        res.json(teamMember);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+app.delete('/api/team/:id', auth, async (req, res) => {
+    try {
+        const teamMember = await TeamMember.findByIdAndDelete(req.params.id);
+        if (!teamMember) {
+            return res.status(404).json({ message: 'Team member not found' });
+        }
+        res.json({ message: 'Team member deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Admin Authentication
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+        
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({ token });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+app.post('/api/logout', auth, (req, res) => {
+    res.json({ message: 'Logged out successfully' });
 });
 
 // Auth Routes
@@ -508,6 +670,555 @@ app.get('/api/activity', auth, async (req, res) => {
     }
 });
 
+// Analytics API Routes
+app.get('/api/analytics/revenue', auth, async (req, res) => {
+    try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const revenues = await Booking.aggregate([
+            {
+                $match: {
+                    status: 'completed',
+                    date: { $gte: thirtyDaysAgo }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'services',
+                    localField: 'service',
+                    foreignField: '_id',
+                    as: 'service'
+                }
+            },
+            { $unwind: '$service' },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                    total: { $sum: '$service.price' }
+                }
+            },
+            { $sort: { '_id': 1 } }
+        ]);
+
+        const labels = revenues.map(r => r._id);
+        const values = revenues.map(r => r.total);
+
+        res.json({ labels, values });
+    } catch (error) {
+        console.error('Error fetching revenue analytics:', error);
+        res.status(500).json({ message: 'Error fetching revenue analytics' });
+    }
+});
+
+app.get('/api/analytics/services', auth, async (req, res) => {
+    try {
+        const popularServices = await Booking.aggregate([
+            {
+                $match: {
+                    status: 'completed'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'services',
+                    localField: 'service',
+                    foreignField: '_id',
+                    as: 'service'
+                }
+            },
+            { $unwind: '$service' },
+            {
+                $group: {
+                    _id: '$service.name',
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 5 }
+        ]);
+
+        const labels = popularServices.map(s => s._id);
+        const values = popularServices.map(s => s.count);
+
+        res.json({ labels, values });
+    } catch (error) {
+        console.error('Error fetching service analytics:', error);
+        res.status(500).json({ message: 'Error fetching service analytics' });
+    }
+});
+
+// Settings API Routes
+app.post('/api/settings/hours', auth, async (req, res) => {
+    try {
+        let settings = await Settings.findOne();
+        if (!settings) {
+            settings = new Settings();
+        }
+        settings.businessHours = req.body;
+        await settings.save();
+        res.json({ message: 'Business hours updated successfully' });
+    } catch (error) {
+        console.error('Error updating business hours:', error);
+        res.status(500).json({ message: 'Error updating business hours' });
+    }
+});
+
+app.get('/api/settings/notifications', auth, async (req, res) => {
+    try {
+        const settings = await Settings.findOne();
+        res.json({
+            email: settings?.notifications?.email ?? true,
+            sms: settings?.notifications?.sms ?? false
+        });
+    } catch (error) {
+        console.error('Error fetching notification settings:', error);
+        res.status(500).json({ message: 'Error fetching notification settings' });
+    }
+});
+
+app.post('/api/settings/notifications', auth, async (req, res) => {
+    try {
+        let settings = await Settings.findOne();
+        if (!settings) {
+            settings = new Settings();
+        }
+        settings.notifications = req.body;
+        await settings.save();
+        res.json({ message: 'Notification settings updated successfully' });
+    } catch (error) {
+        console.error('Error updating notification settings:', error);
+        res.status(500).json({ message: 'Error updating notification settings' });
+    }
+});
+
+// Export Bookings
+app.get('/api/bookings/export', auth, async (req, res) => {
+    try {
+        const bookings = await Booking.find()
+            .populate('service')
+            .populate('employee')
+            .sort({ date: -1 });
+
+        const csvData = bookings.map(booking => ({
+            Date: new Date(booking.date).toLocaleDateString(),
+            Time: new Date(booking.date).toLocaleTimeString(),
+            Service: booking.service.name,
+            Price: booking.service.price,
+            Customer: booking.customerName,
+            Email: booking.customerEmail,
+            Phone: booking.customerPhone,
+            Barber: booking.employee.name,
+            Status: booking.status
+        }));
+
+        const csv = await json2csv(csvData);
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=bookings-${new Date().toISOString().split('T')[0]}.csv`);
+        res.send(csv);
+    } catch (error) {
+        console.error('Error exporting bookings:', error);
+        res.status(500).json({ message: 'Error exporting bookings' });
+    }
+});
+
+// Gallery Routes
+app.post('/api/gallery/upload', auth, upload.array('photos', 10), async (req, res) => {
+    try {
+        const uploadedPhotos = [];
+        for (const file of req.files) {
+            const photo = new Gallery({
+                url: `/uploads/${file.filename}`,
+                title: file.originalname,
+                uploadedBy: req.user._id
+            });
+            await photo.save();
+            uploadedPhotos.push(photo);
+        }
+        
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'UPLOAD_PHOTOS',
+            details: `Uploaded ${req.files.length} photos`
+        });
+        await activity.save();
+
+        res.status(201).json(uploadedPhotos);
+    } catch (error) {
+        console.error('Error uploading photos:', error);
+        res.status(500).json({ message: 'Error uploading photos' });
+    }
+});
+
+app.get('/api/gallery', auth, async (req, res) => {
+    try {
+        const photos = await Gallery.find().sort({ createdAt: -1 });
+        res.json(photos);
+    } catch (error) {
+        console.error('Error fetching gallery:', error);
+        res.status(500).json({ message: 'Error fetching gallery' });
+    }
+});
+
+app.delete('/api/gallery/:id', auth, async (req, res) => {
+    try {
+        const photo = await Gallery.findById(req.params.id);
+        if (!photo) {
+            return res.status(404).json({ message: 'Photo not found' });
+        }
+
+        // Delete file from uploads directory
+        const filePath = path.join(__dirname, 'public', photo.url);
+        fs.unlink(filePath, (err) => {
+            if (err) console.error('Error deleting file:', err);
+        });
+
+        await photo.deleteOne();
+
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'DELETE_PHOTO',
+            details: `Deleted photo: ${photo.title}`
+        });
+        await activity.save();
+
+        res.json({ message: 'Photo deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting photo:', error);
+        res.status(500).json({ message: 'Error deleting photo' });
+    }
+});
+
+// Reviews Routes
+app.get('/api/reviews', auth, async (req, res) => {
+    try {
+        const reviews = await Review.find().sort({ createdAt: -1 });
+        res.json(reviews);
+    } catch (error) {
+        console.error('Error fetching reviews:', error);
+        res.status(500).json({ message: 'Error fetching reviews' });
+    }
+});
+
+app.patch('/api/reviews/:id', auth, async (req, res) => {
+    try {
+        const review = await Review.findByIdAndUpdate(
+            req.params.id,
+            { approved: req.body.approved },
+            { new: true }
+        );
+
+        if (!review) {
+            return res.status(404).json({ message: 'Review not found' });
+        }
+
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'UPDATE_REVIEW',
+            details: `${req.body.approved ? 'Approved' : 'Unpublished'} review from ${review.customerName}`
+        });
+        await activity.save();
+
+        res.json(review);
+    } catch (error) {
+        console.error('Error updating review:', error);
+        res.status(500).json({ message: 'Error updating review' });
+    }
+});
+
+app.delete('/api/reviews/:id', auth, async (req, res) => {
+    try {
+        const review = await Review.findByIdAndDelete(req.params.id);
+        if (!review) {
+            return res.status(404).json({ message: 'Review not found' });
+        }
+
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'DELETE_REVIEW',
+            details: `Deleted review from ${review.customerName}`
+        });
+        await activity.save();
+
+        res.json({ message: 'Review deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting review:', error);
+        res.status(500).json({ message: 'Error deleting review' });
+    }
+});
+
+// Activity Log Routes
+app.get('/api/activity-log', auth, async (req, res) => {
+    try {
+        const activities = await Activity.find()
+            .sort({ timestamp: -1 })
+            .limit(100);
+        res.json(activities);
+    } catch (error) {
+        console.error('Error fetching activity log:', error);
+        res.status(500).json({ message: 'Error fetching activity log' });
+    }
+});
+
+// Analytics API Routes
+app.get('/api/analytics', auth, async (req, res) => {
+    try {
+        const range = req.query.range || 'week';
+        const now = new Date();
+        let startDate;
+
+        switch (range) {
+            case 'week':
+                startDate = new Date(now.setDate(now.getDate() - 7));
+                break;
+            case 'month':
+                startDate = new Date(now.setMonth(now.getMonth() - 1));
+                break;
+            case 'year':
+                startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+                break;
+            default:
+                startDate = new Date(now.setDate(now.getDate() - 7));
+        }
+
+        // Get revenue data
+        const bookings = await Booking.find({
+            date: { $gte: startDate }
+        }).populate('service');
+
+        const revenue = bookings.reduce((acc, booking) => {
+            const date = booking.date.toISOString().split('T')[0];
+            acc[date] = (acc[date] || 0) + booking.service.price;
+            return acc;
+        }, {});
+
+        // Get popular time slots
+        const timeSlots = bookings.reduce((acc, booking) => {
+            const hour = booking.date.getHours();
+            acc[hour] = (acc[hour] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Get service performance
+        const services = await Service.aggregate([
+            {
+                $lookup: {
+                    from: 'bookings',
+                    localField: '_id',
+                    foreignField: 'service',
+                    as: 'bookings'
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    bookingCount: { $size: '$bookings' }
+                }
+            }
+        ]);
+
+        // Calculate metrics
+        const totalCustomers = await Customer.countDocuments();
+        const newCustomers = await Customer.countDocuments({
+            createdAt: { $gte: startDate }
+        });
+        const repeatCustomers = await Booking.distinct('customer', {
+            date: { $gte: startDate }
+        });
+        const avgBookingValue = bookings.length > 0 
+            ? bookings.reduce((acc, b) => acc + b.service.price, 0) / bookings.length 
+            : 0;
+
+        res.json({
+            revenue: Object.entries(revenue).map(([date, value]) => ({ date, value })),
+            timeSlots: Object.entries(timeSlots).map(([hour, count]) => ({ hour, count })),
+            services: services.map(s => ({ name: s.name, count: s.bookingCount })),
+            demographics: [], // To be implemented based on customer data
+            metrics: {
+                retentionRate: Math.round((repeatCustomers.length / totalCustomers) * 100),
+                avgBookingValue: Math.round(avgBookingValue * 100) / 100,
+                newCustomers,
+                satisfactionRate: 95 // Placeholder - implement based on reviews
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching analytics:', error);
+        res.status(500).json({ message: 'Error fetching analytics' });
+    }
+});
+
+// Marketing Routes
+app.post('/api/marketing/email', auth, async (req, res) => {
+    try {
+        const campaign = new EmailCampaign({
+            name: req.body.name,
+            targetAudience: req.body.targetAudience,
+            template: req.body.template,
+            createdBy: req.user._id
+        });
+        await campaign.save();
+
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'CREATE_EMAIL_CAMPAIGN',
+            details: `Created email campaign: ${campaign.name}`
+        });
+        await activity.save();
+
+        res.status(201).json(campaign);
+    } catch (error) {
+        console.error('Error creating email campaign:', error);
+        res.status(500).json({ message: 'Error creating email campaign' });
+    }
+});
+
+app.post('/api/marketing/sms', auth, async (req, res) => {
+    try {
+        const campaign = new SmsCampaign({
+            type: req.body.type,
+            message: req.body.message,
+            createdBy: req.user._id
+        });
+        await campaign.save();
+
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'CREATE_SMS_CAMPAIGN',
+            details: `Created SMS campaign of type: ${campaign.type}`
+        });
+        await activity.save();
+
+        res.status(201).json(campaign);
+    } catch (error) {
+        console.error('Error creating SMS campaign:', error);
+        res.status(500).json({ message: 'Error creating SMS campaign' });
+    }
+});
+
+// Inventory Routes
+app.get('/api/inventory', auth, async (req, res) => {
+    try {
+        const products = await Product.find().sort('name');
+        res.json(products);
+    } catch (error) {
+        console.error('Error fetching inventory:', error);
+        res.status(500).json({ message: 'Error fetching inventory' });
+    }
+});
+
+app.post('/api/inventory', auth, async (req, res) => {
+    try {
+        const product = new Product({
+            name: req.body.name,
+            category: req.body.category,
+            stock: req.body.stock,
+            price: req.body.price,
+            status: req.body.status
+        });
+        await product.save();
+
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'CREATE_PRODUCT',
+            details: `Added product: ${product.name}`
+        });
+        await activity.save();
+
+        res.status(201).json(product);
+    } catch (error) {
+        console.error('Error creating product:', error);
+        res.status(500).json({ message: 'Error creating product' });
+    }
+});
+
+app.put('/api/inventory/:id', auth, async (req, res) => {
+    try {
+        const product = await Product.findByIdAndUpdate(
+            req.params.id,
+            {
+                name: req.body.name,
+                category: req.body.category,
+                stock: req.body.stock,
+                price: req.body.price,
+                status: req.body.status
+            },
+            { new: true }
+        );
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'UPDATE_PRODUCT',
+            details: `Updated product: ${product.name}`
+        });
+        await activity.save();
+
+        res.json(product);
+    } catch (error) {
+        console.error('Error updating product:', error);
+        res.status(500).json({ message: 'Error updating product' });
+    }
+});
+
+// Staff Schedule Routes
+app.get('/api/schedule', auth, async (req, res) => {
+    try {
+        const shifts = await Shift.find()
+            .populate('staff')
+            .sort('start');
+        
+        const events = shifts.map(shift => ({
+            id: shift._id,
+            title: `${shift.staff.name} - ${shift.type}`,
+            start: shift.start,
+            end: shift.end,
+            backgroundColor: shift.type === 'regular' ? '#4CAF50' : '#FFC107'
+        }));
+
+        res.json(events);
+    } catch (error) {
+        console.error('Error fetching schedule:', error);
+        res.status(500).json({ message: 'Error fetching schedule' });
+    }
+});
+
+app.post('/api/schedule', auth, async (req, res) => {
+    try {
+        const shift = new Shift({
+            staff: req.body.staffId,
+            type: req.body.type,
+            start: req.body.start,
+            end: req.body.end
+        });
+        await shift.save();
+
+        // Log activity
+        const activity = new Activity({
+            user: req.user.email,
+            action: 'CREATE_SHIFT',
+            details: `Created shift for staff ID: ${shift.staff}`
+        });
+        await activity.save();
+
+        res.status(201).json(shift);
+    } catch (error) {
+        console.error('Error creating shift:', error);
+        res.status(500).json({ message: 'Error creating shift' });
+    }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err.stack);
@@ -522,16 +1233,20 @@ app.use((req, res) => {
 // Create default admin user if none exists
 async function createDefaultAdmin() {
     try {
-        const adminExists = await User.findOne({ username: 'admin' });
+        const adminExists = await User.findOne({ role: 'admin' });
         if (!adminExists) {
             const hashedPassword = await bcrypt.hash('admin123', 10);
             const admin = new User({
                 username: 'admin',
+                email: 'admin@moonbarbershop.com',
                 password: hashedPassword,
-                role: 'admin'
+                role: 'admin',
+                firstName: 'Admin',
+                lastName: 'User',
+                active: true
             });
             await admin.save();
-            console.log('Default admin user created');
+            console.log('Default admin user created successfully');
         }
     } catch (error) {
         console.error('Error creating default admin:', error);

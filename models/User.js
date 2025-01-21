@@ -1,10 +1,18 @@
 const mongoose = require('mongoose');
 
-const UserSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
     username: { 
         type: String, 
         required: true, 
-        unique: true 
+        unique: true,
+        trim: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+        lowercase: true
     },
     password: { 
         type: String, 
@@ -15,14 +23,32 @@ const UserSchema = new mongoose.Schema({
         enum: ['admin', 'staff'],
         default: 'staff'
     },
+    firstName: {
+        type: String,
+        trim: true
+    },
+    lastName: {
+        type: String,
+        trim: true
+    },
+    active: {
+        type: Boolean,
+        default: true
+    },
     lastLogin: {
         type: Date,
         default: null
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
     }
+}, {
+    timestamps: true
 });
 
-module.exports = mongoose.model('User', UserSchema);
+// Virtual for full name
+userSchema.virtual('fullName').get(function() {
+    if (this.firstName && this.lastName) {
+        return `${this.firstName} ${this.lastName}`;
+    }
+    return this.username;
+});
+
+module.exports = mongoose.model('User', userSchema);
