@@ -58,9 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Add click handlers for navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
                 const sectionId = this.dataset.section;
+                
                 if (sectionId) {
                     // Hide all sections
                     document.querySelectorAll('.section').forEach(section => {
@@ -74,17 +76,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     // Update active state in navigation
-                    document.querySelectorAll('.nav-item').forEach(navItem => {
-                        navItem.querySelector('.nav-link').classList.remove('active');
+                    document.querySelectorAll('.nav-link').forEach(navLink => {
+                        navLink.classList.remove('active');
                     });
-                    this.querySelector('.nav-link').classList.add('active');
+                    this.classList.add('active');
                 }
             });
         });
     });
 
     // Logout
-    document.getElementById('logout').addEventListener('click', () => {
+    document.getElementById('logout').addEventListener('click', (e) => {
+        e.preventDefault();
         localStorage.removeItem('token');
         window.location.href = '/admin/login';
     });
