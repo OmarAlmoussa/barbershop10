@@ -35,9 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load services
     const loadServices = async () => {
         try {
-            const response = await fetch('/api/services', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await fetch('/api/services');
             const services = await response.json();
             
             const servicesList = document.getElementById('services-list');
@@ -70,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: JSON.stringify({
                     name,
@@ -80,7 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to add service');
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to add service');
             }
 
             // Clear form
@@ -92,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadServices();
         } catch (error) {
             console.error('Error adding service:', error);
-            alert('Failed to add service. Please try again.');
+            alert(error.message || 'Failed to add service. Please try again.');
         }
     };
 
@@ -106,19 +105,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/services/${serviceId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
 
             if (!response.ok) {
-                throw new Error('Failed to delete service');
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to delete service');
             }
 
             // Reload services
             loadServices();
         } catch (error) {
             console.error('Error deleting service:', error);
-            alert('Failed to delete service. Please try again.');
+            alert(error.message || 'Failed to delete service. Please try again.');
         }
     };
 

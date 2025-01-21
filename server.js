@@ -2,11 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const path = require('path');
+const cors = require('cors');
 dotenv.config();
 
 const app = express();
 
 // Middleware
+app.use(cors());
 app.use(express.json());
 
 // Serve static files
@@ -31,8 +33,8 @@ app.use('/api/team', teamRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Something went wrong!' });
+    console.error('Error:', err.stack);
+    res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
 // Handle 404
