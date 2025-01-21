@@ -233,13 +233,16 @@ async function loadTeam() {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <img src="${member.image || '/images/default-avatar.png'}" 
+                    <img src="${member.photo || '/images/default-avatar.png'}" 
                          alt="${member.name}" 
                          style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;">
                 </td>
-                <td>${member.name}</td>
+                <td>
+                    ${member.name}<br>
+                    <small class="text-muted">${member.email}</small>
+                </td>
                 <td>${member.role}</td>
-                <td>${member.description}</td>
+                <td>${member.bio}</td>
                 <td>
                     <button class="btn btn-sm btn-primary edit-team" data-id="${member._id}">
                         <i class="fas fa-edit"></i>
@@ -268,18 +271,38 @@ async function loadTeam() {
 // Add Team Member
 document.getElementById('add-team-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    console.log('Add Member button clicked');
 
     const formData = {
-        name: document.getElementById('team-name').value,
-        role: document.getElementById('team-role').value,
-        description: document.getElementById('team-description').value,
+        name: document.getElementById('team-name').value.trim(),
+        email: document.getElementById('team-email').value.trim(),
+        role: document.getElementById('team-role').value.trim(),
+        bio: document.getElementById('team-bio').value.trim(),
         photo: null
     };
+
+    // Validate required fields
+    if (!formData.name || !formData.email || !formData.role || !formData.bio) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
 
     // Handle photo upload
     const photoInput = document.getElementById('team-photo');
     if (photoInput.files.length > 0) {
         const file = photoInput.files[0];
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Photo size must be less than 5MB.');
+            return;
+        }
         // Convert photo to base64
         try {
             const base64Photo = await new Promise((resolve, reject) => {
@@ -296,7 +319,10 @@ document.getElementById('add-team-form').addEventListener('submit', async (e) =>
         }
     }
 
-    console.log('Submitting team member data:', { ...formData, photo: formData.photo ? 'base64_data' : null });
+    console.log('Submitting team member data:', { 
+        ...formData, 
+        photo: formData.photo ? 'base64_data' : null 
+    });
 
     try {
         const response = await fetchWithAuth('/api/team', {
@@ -335,8 +361,9 @@ document.addEventListener('click', async (e) => {
             const form = document.getElementById('edit-team-form');
             form.memberId.value = member._id;
             form.name.value = member.name;
+            form.email.value = member.email;
             form.role.value = member.role;
-            form.description.value = member.description;
+            form.bio.value = member.bio;
             
             new bootstrap.Modal(document.getElementById('editTeamModal')).show();
         } catch (error) {
@@ -351,16 +378,35 @@ document.getElementById('edit-team-form').addEventListener('submit', async (e) =
     const memberId = document.getElementById('edit-team-id').value;
 
     const formData = {
-        name: document.getElementById('edit-team-name').value,
-        role: document.getElementById('edit-team-role').value,
-        description: document.getElementById('edit-team-description').value,
+        name: document.getElementById('edit-team-name').value.trim(),
+        email: document.getElementById('edit-team-email').value.trim(),
+        role: document.getElementById('edit-team-role').value.trim(),
+        bio: document.getElementById('edit-team-bio').value.trim(),
         photo: null
     };
+
+    // Validate required fields
+    if (!formData.name || !formData.email || !formData.role || !formData.bio) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
 
     // Handle photo upload
     const photoInput = document.getElementById('edit-team-photo');
     if (photoInput.files.length > 0) {
         const file = photoInput.files[0];
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Photo size must be less than 5MB.');
+            return;
+        }
         // Convert photo to base64
         try {
             const base64Photo = await new Promise((resolve, reject) => {
@@ -377,7 +423,10 @@ document.getElementById('edit-team-form').addEventListener('submit', async (e) =
         }
     }
 
-    console.log('Submitting updated team member data:', { ...formData, photo: formData.photo ? 'base64_data' : null });
+    console.log('Submitting updated team member data:', { 
+        ...formData, 
+        photo: formData.photo ? 'base64_data' : null 
+    });
 
     try {
         const response = await fetchWithAuth(`/api/team/${memberId}`, {
