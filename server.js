@@ -1219,6 +1219,112 @@ app.post('/api/schedule', auth, async (req, res) => {
     }
 });
 
+// Business Hours API
+app.get('/api/business-hours', auth, async (req, res) => {
+    try {
+        const settings = await Settings.findOne();
+        res.json(settings?.businessHours || {});
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching business hours' });
+    }
+});
+
+app.put('/api/business-hours', auth, async (req, res) => {
+    try {
+        let settings = await Settings.findOne();
+        if (!settings) {
+            settings = new Settings();
+        }
+        settings.businessHours = req.body;
+        await settings.save();
+        res.json(settings.businessHours);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating business hours' });
+    }
+});
+
+// Team Members API
+app.post('/api/team', auth, upload.single('image'), async (req, res) => {
+    try {
+        const { name, role, description } = req.body;
+        const teamMember = new TeamMember({
+            name,
+            role,
+            description,
+            image: req.file ? `/uploads/${req.file.filename}` : null
+        });
+        await teamMember.save();
+        
+        // Log activity
+        const activity = new Activity({
+            description: `Added new team member: ${name}`,
+            timestamp: new Date()
+        });
+        await activity.save();
+        
+        res.status(201).json(teamMember);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Enhanced Booking API
+app.post('/api/bookings', auth, async (req, res) => {
+    try {
+        const { customerName, customerEmail, customerPhone, service, barber, date, time, notes } = req.body;
+        
+        const booking = new Booking({
+            customerName,
+            customerEmail,
+            customerPhone,
+            service,
+            barber,
+            date,
+            time,
+            notes,
+            status: 'pending'
+        });
+        
+        await booking.save();
+        
+        // Log activity
+        const activity = new Activity({
+            description: `New booking created for ${customerName}`,
+            timestamp: new Date()
+        });
+        await activity.save();
+        
+        res.status(201).json(booking);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+app.put('/api/bookings/:id', auth, async (req, res) => {
+    try {
+        const booking = await Booking.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        ).populate('service').populate('barber');
+        
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+        
+        // Log activity
+        const activity = new Activity({
+            description: `Updated booking for ${booking.customerName}`,
+            timestamp: new Date()
+        });
+        await activity.save();
+        
+        res.json(booking);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
 // Serve admin pages
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin', 'admin.html'));
