@@ -47,7 +47,14 @@ mongoose
     .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Start Server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+    console.log(`Server is running at http://${HOST}:${PORT}`);
+    console.log('Environment:', {
+        PORT: process.env.PORT,
+        NODE_ENV: process.env.NODE_ENV,
+        HOST: HOST
+    });
 });
