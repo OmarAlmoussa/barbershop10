@@ -44,12 +44,81 @@ document.addEventListener('DOMContentLoaded', () => {
             servicesList.innerHTML = services.map(service => `
                 <div class="service">
                     <h3>${service.name}</h3>
-                    <p>${service.description}</p>
+                    <p>${service.description || ''}</p>
                     <p>Price: ${service.price} NOK</p>
+                    <button onclick="deleteService('${service._id}')" class="delete-btn">Delete</button>
                 </div>
             `).join('');
         } catch (error) {
             console.error('Error loading services:', error);
+        }
+    };
+
+    // Add service
+    window.addService = async () => {
+        const name = document.getElementById('service-name').value;
+        const description = document.getElementById('service-description').value;
+        const price = document.getElementById('service-price').value;
+
+        if (!name || !price) {
+            alert('Name and price are required!');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/services', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name,
+                    description,
+                    price: Number(price)
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add service');
+            }
+
+            // Clear form
+            document.getElementById('service-name').value = '';
+            document.getElementById('service-description').value = '';
+            document.getElementById('service-price').value = '';
+
+            // Reload services
+            loadServices();
+        } catch (error) {
+            console.error('Error adding service:', error);
+            alert('Failed to add service. Please try again.');
+        }
+    };
+
+    // Delete service
+    window.deleteService = async (serviceId) => {
+        if (!confirm('Are you sure you want to delete this service?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/services/${serviceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete service');
+            }
+
+            // Reload services
+            loadServices();
+        } catch (error) {
+            console.error('Error deleting service:', error);
+            alert('Failed to delete service. Please try again.');
         }
     };
 

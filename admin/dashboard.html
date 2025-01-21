@@ -3,98 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Barbershop</title>
-    <link rel="stylesheet" href="css/dashboard.css">
+    <title>Admin Dashboard - Moon Barbershop</title>
+    <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="logo">
-                <h2>Admin Panel</h2>
+    <nav>
+        <h1>Moon Barbershop Admin</h1>
+        <button id="logout">Logout</button>
+    </nav>
+    
+    <div class="container">
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <h3>Today's Bookings</h3>
+                <p id="today-bookings">0</p>
             </div>
-            <nav class="sidebar-nav">
-                <a href="#services" class="active">Services</a>
-                <a href="#team">Team Members</a>
-                <a href="#bookings">Bookings</a>
-                <a href="#" id="logout">Logout</a>
-            </nav>
         </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Services Section -->
-            <section id="services" class="section active">
-                <h2>Services</h2>
-                <button id="add-service-btn" class="add-btn">Add New Service</button>
-                <div id="services-list" class="grid-list"></div>
-            </section>
+        <div class="services-section">
+            <h2>Services</h2>
+            <div class="add-service-form">
+                <h3>Add New Service</h3>
+                <input type="text" id="service-name" placeholder="Service Name" required>
+                <textarea id="service-description" placeholder="Description"></textarea>
+                <input type="number" id="service-price" placeholder="Price (NOK)" required>
+                <button onclick="addService()">Add Service</button>
+            </div>
+            <div id="services-list"></div>
+        </div>
 
-            <!-- Team Section -->
-            <section id="team" class="section">
-                <h2>Team Members</h2>
-                <button id="add-team-btn" class="add-btn">Add New Team Member</button>
-                <div id="team-list" class="grid-list"></div>
-            </section>
-
-            <!-- Bookings Section -->
-            <section id="bookings" class="section">
-                <h2>Bookings</h2>
-                <div id="bookings-list" class="bookings-list"></div>
-            </section>
+        <div class="team-section">
+            <h2>Team Members</h2>
+            <div id="team-list"></div>
         </div>
     </div>
 
-    <!-- Service Modal -->
-    <div id="service-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add/Edit Service</h2>
-            <form id="service-form">
-                <div class="form-group">
-                    <label for="service-name">Service Name</label>
-                    <input type="text" id="service-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="service-description">Description</label>
-                    <textarea id="service-description" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="service-price">Price ($)</label>
-                    <input type="number" id="service-price" step="0.01" required>
-                </div>
-                <button type="submit" class="submit-btn">Save Service</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Team Member Modal -->
-    <div id="team-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add/Edit Team Member</h2>
-            <form id="team-form">
-                <div class="form-group">
-                    <label for="team-name">Name</label>
-                    <input type="text" id="team-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="team-role">Role</label>
-                    <input type="text" id="team-role" required>
-                </div>
-                <div class="form-group">
-                    <label for="team-bio">Bio</label>
-                    <textarea id="team-bio"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="team-photo">Photo URL</label>
-                    <input type="url" id="team-photo">
-                </div>
-                <button type="submit" class="submit-btn">Save Team Member</button>
-            </form>
-        </div>
-    </div>
-
-    <script src="js/dashboard.js"></script>
+    <script src="js/admin.js"></script>
 </body>
 </html>
