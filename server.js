@@ -572,7 +572,7 @@ app.post('/api/team', auth, async (req, res) => {
         res.status(500).json({ 
             message: 'Error creating team member',
             error: error.message,
-            details: error.code === 11000 ? 'Duplicate email' : error.message
+            details: error.stack
         });
     }
 });
@@ -1383,7 +1383,7 @@ app.post('/api/team', auth, async (req, res) => {
         res.status(500).json({ 
             message: 'Error creating team member',
             error: error.message,
-            details: error.code === 11000 ? 'Duplicate email' : error.message
+            details: error.stack
         });
     }
 });
@@ -1461,7 +1461,7 @@ app.get('/admin/dashboard', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err.stack);
-    res.status(500).json({ message: 'Something went wrong!', error: err.message });
+    res.status(500).json({ message: 'Something went wrong!', error: err.message, details: err.stack });
 });
 
 // Handle 404

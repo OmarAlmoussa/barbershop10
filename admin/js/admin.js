@@ -282,11 +282,7 @@ document.getElementById('add-team-form').addEventListener('submit', async (e) =>
             photo: null
         };
 
-        // Log the form data being submitted
-        console.log('Form data:', {
-            ...formData,
-            photo: formData.photo ? 'base64_data' : null
-        });
+        console.log('Form data:', formData);
 
         // Validate required fields
         const missingFields = [];
@@ -332,7 +328,10 @@ document.getElementById('add-team-form').addEventListener('submit', async (e) =>
             }
         }
 
-        console.log('Submitting team member data...');
+        console.log('Submitting team member data:', { 
+            ...formData, 
+            photo: formData.photo ? 'base64_data' : null 
+        });
 
         const response = await fetchWithAuth('/api/team', {
             method: 'POST',
@@ -341,21 +340,16 @@ document.getElementById('add-team-form').addEventListener('submit', async (e) =>
             },
             body: JSON.stringify(formData)
         });
-        
-        let responseData;
-        try {
-            responseData = await response.json();
-        } catch (error) {
-            console.error('Error parsing response:', error);
-            alert('Server response was not in the expected format. Please try again.');
-            return;
-        }
-        
+
         if (!response.ok) {
-            console.error('Server error:', responseData);
-            alert(responseData.message || 'Failed to add team member. Please check the console for details.');
+            const errorDetails = await response.json();
+            console.error('Server error:', errorDetails);
+            alert(errorDetails.message || 'Failed to add team member.');
             return;
         }
+
+        const data = await response.json();
+        console.log('Server response:', data);
 
         // Hide modal using Bootstrap
         const modal = bootstrap.Modal.getInstance(document.getElementById('addTeamModal'));
@@ -371,8 +365,8 @@ document.getElementById('add-team-form').addEventListener('submit', async (e) =>
         
         alert('Team member added successfully!');
     } catch (error) {
-        console.error('Error adding team member:', error);
-        alert('An unexpected error occurred. Please check the console for details.');
+        console.error('Error in form submission:', error);
+        alert('An unexpected error occurred. Please try again.');
     }
 });
 
