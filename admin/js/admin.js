@@ -49,15 +49,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', function() {
-            const section = this.closest('.nav-item').dataset.section;
-            if (section) {
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                document.getElementById(section).classList.add('active');
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                this.classList.add('active');
+    document.addEventListener('DOMContentLoaded', function() {
+        // Hide all sections except dashboard initially
+        document.querySelectorAll('.section').forEach(section => {
+            if (section.id !== 'dashboard-section') {
+                section.style.display = 'none';
             }
+        });
+
+        // Add click handlers for navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const sectionId = this.dataset.section;
+                if (sectionId) {
+                    // Hide all sections
+                    document.querySelectorAll('.section').forEach(section => {
+                        section.style.display = 'none';
+                    });
+                    
+                    // Show selected section
+                    const selectedSection = document.getElementById(sectionId);
+                    if (selectedSection) {
+                        selectedSection.style.display = 'block';
+                    }
+                    
+                    // Update active state in navigation
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.querySelector('.nav-link').classList.remove('active');
+                    });
+                    this.querySelector('.nav-link').classList.add('active');
+                }
+            });
         });
     });
 
