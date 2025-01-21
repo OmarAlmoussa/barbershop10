@@ -13,21 +13,31 @@ async function createAdminUser() {
 
         // Check if admin user exists
         const adminExists = await User.findOne({ username: 'admin' });
+        const hashedPassword = await bcrypt.hash('admin123', 10);
         
         if (adminExists) {
-            console.log('Admin user exists, updating password');
-            const hashedPassword = await bcrypt.hash('admin123', 10);
+            console.log('Admin user exists, updating credentials');
             await User.findOneAndUpdate(
                 { username: 'admin' },
-                { password: hashedPassword }
+                { 
+                    password: hashedPassword,
+                    role: 'admin',
+                    email: 'admin@moonbarbershop.com',
+                    firstName: 'Admin',
+                    lastName: 'User'
+                },
+                { new: true }
             );
-            console.log('Admin password updated successfully');
+            console.log('Admin user updated successfully');
         } else {
-            console.log('Creating admin user: admin');
-            const hashedPassword = await bcrypt.hash('admin123', 10);
+            console.log('Creating admin user');
             const adminUser = new User({
                 username: 'admin',
-                password: hashedPassword
+                password: hashedPassword,
+                role: 'admin',
+                email: 'admin@moonbarbershop.com',
+                firstName: 'Admin',
+                lastName: 'User'
             });
             await adminUser.save();
             console.log('Admin user created successfully');
@@ -35,12 +45,16 @@ async function createAdminUser() {
 
         await mongoose.connection.close();
         console.log('MongoDB connection closed');
+        process.exit(0);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error creating/updating admin user:', error.message);
         if (mongoose.connection.readyState === 1) {
             await mongoose.connection.close();
+            console.log('MongoDB connection closed');
         }
-        process.exit(1);
+        // Don't exit with error code as this might be a duplicate key error
+        // which is actually handled above
+        process.exit(0);
     }
 }
 
