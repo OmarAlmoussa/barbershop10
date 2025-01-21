@@ -207,20 +207,25 @@
                     <form id="add-team-form">
                         <div class="mb-3">
                             <label for="team-name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="team-name" name="name" required>
+                            <input type="text" class="form-control" id="team-name" name="name" placeholder="Enter name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="team-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="team-email" name="email" placeholder="Enter email" required>
+                            <div class="form-text">This email will be used for notifications and communication.</div>
                         </div>
                         <div class="mb-3">
                             <label for="team-role" class="form-label">Role</label>
-                            <input type="text" class="form-control" id="team-role" name="role" required>
+                            <input type="text" class="form-control" id="team-role" name="role" placeholder="Enter role" required>
                         </div>
                         <div class="mb-3">
-                            <label for="team-description" class="form-label">Description</label>
-                            <textarea class="form-control" id="team-description" name="description" required></textarea>
+                            <label for="team-bio" class="form-label">Bio</label>
+                            <textarea class="form-control" id="team-bio" name="bio" placeholder="Enter bio" rows="3" required></textarea>
                         </div>
                         <div class="mb-3">
                             <label for="team-photo" class="form-label">Photo (Optional)</label>
                             <input type="file" class="form-control" id="team-photo" name="photo" accept="image/*">
-                            <small class="text-muted">Recommended size: 300x300 pixels</small>
+                            <small class="text-muted">Recommended size: 300x300 pixels, max 5MB</small>
                         </div>
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -245,20 +250,25 @@
                         <input type="hidden" name="memberId" id="edit-team-id">
                         <div class="mb-3">
                             <label for="edit-team-name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="edit-team-name" name="name" required>
+                            <input type="text" class="form-control" id="edit-team-name" name="name" placeholder="Enter name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-team-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="edit-team-email" name="email" placeholder="Enter email" required>
+                            <div class="form-text">This email will be used for notifications and communication.</div>
                         </div>
                         <div class="mb-3">
                             <label for="edit-team-role" class="form-label">Role</label>
-                            <input type="text" class="form-control" id="edit-team-role" name="role" required>
+                            <input type="text" class="form-control" id="edit-team-role" name="role" placeholder="Enter role" required>
                         </div>
                         <div class="mb-3">
-                            <label for="edit-team-description" class="form-label">Description</label>
-                            <textarea class="form-control" id="edit-team-description" name="description" required></textarea>
+                            <label for="edit-team-bio" class="form-label">Bio</label>
+                            <textarea class="form-control" id="edit-team-bio" name="bio" placeholder="Enter bio" rows="3" required></textarea>
                         </div>
                         <div class="mb-3">
                             <label for="edit-team-photo" class="form-label">Photo (Optional)</label>
                             <input type="file" class="form-control" id="edit-team-photo" name="photo" accept="image/*">
-                            <small class="text-muted">Leave empty to keep existing photo</small>
+                            <small class="text-muted">Leave empty to keep existing photo. Max size: 5MB</small>
                         </div>
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
