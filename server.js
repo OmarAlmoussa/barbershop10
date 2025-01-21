@@ -1219,6 +1219,19 @@ app.post('/api/schedule', auth, async (req, res) => {
     }
 });
 
+// Serve admin pages
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin', 'admin.html'));
+});
+
+app.get('/admin/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin', 'login.html'));
+});
+
+app.get('/admin/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin', 'dashboard.html'));
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err.stack);
