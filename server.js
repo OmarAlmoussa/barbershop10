@@ -13,6 +13,11 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
+// Admin route
+app.get('/admin', (req, res) => {
+    res.redirect('/admin/login.html');
+});
+
 // Routes
 const authRoutes = require('./routes/auth');
 const serviceRoutes = require('./routes/services');
@@ -26,10 +31,14 @@ app.use('/api/team', teamRoutes);
 
 // Database Connection
 mongoose
-    .connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .connect(process.env.MONGODB_URI)
     .then(() => console.log('MongoDB Connected'))
     .catch(err => console.error('MongoDB Connection Error:', err));
 
+
 // Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(8080, () => {
+    console.log('Server is running on port 8080');
+});
+
+
