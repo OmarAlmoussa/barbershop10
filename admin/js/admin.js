@@ -42,1130 +42,534 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeMarketingTools();
     loadInventory();
     initializeSchedule();
-});
 
-// Navigation
-function initializeNavigation() {
-    const navLinks = document.querySelectorAll('.nav-links li');
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            if (link.id === 'logout') {
-                handleLogout();
-                return;
+    // Check if user is logged in
+    if (!localStorage.getItem('token')) {
+        window.location.href = '/admin/login';
+    }
+
+    // Navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function() {
+            const section = this.closest('.nav-item').dataset.section;
+            if (section) {
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById(section).classList.add('active');
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
             }
-            
-            // Remove active class from all sections
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Remove active class from all nav links
-            navLinks.forEach(navLink => {
-                navLink.classList.remove('active');
-            });
-            
-            // Add active class to clicked link and corresponding section
-            link.classList.add('active');
-            const sectionId = link.getAttribute('data-section');
-            document.getElementById(sectionId).classList.add('active');
-        });
-    });
-}
-
-// Clock
-function updateClock() {
-    const now = new Date();
-    document.getElementById('current-time').textContent = now.toLocaleTimeString();
-}
-
-// Dashboard
-async function loadDashboard() {
-    try {
-        // Load today's bookings
-        const bookingsResponse = await fetch('/api/bookings', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const bookings = await bookingsResponse.json();
-        
-        const today = new Date().toISOString().split('T')[0];
-        const todayBookings = bookings.filter(booking => 
-            booking.date.startsWith(today)
-        );
-        
-        document.getElementById('today-bookings').textContent = todayBookings.length;
-        
-        // Load active employees
-        const employeesResponse = await fetch('/api/team', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const employees = await employeesResponse.json();
-        const activeEmployees = employees.filter(emp => emp.available);
-        
-        document.getElementById('active-employees').textContent = activeEmployees.length;
-        
-        // Load upcoming bookings
-        const upcoming = bookings.filter(booking => 
-            new Date(booking.date) > new Date()
-        );
-        
-        document.getElementById('upcoming-bookings').textContent = upcoming.length;
-        
-        // Load recent activity
-        loadRecentActivity();
-    } catch (error) {
-        console.error('Error loading dashboard:', error);
-    }
-}
-
-// Users Management
-async function loadUsers() {
-    try {
-        const response = await fetch('/api/users', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const users = await response.json();
-        
-        const usersList = document.getElementById('users-list');
-        usersList.innerHTML = users.map(user => `
-            <div class="card">
-                <h3>${user.username}</h3>
-                <p>Role: ${user.role}</p>
-                <p>Last Login: ${new Date(user.lastLogin).toLocaleString()}</p>
-                <div class="card-actions">
-                    <button onclick="editUser('${user._id}')">Edit</button>
-                    <button onclick="deleteUser('${user._id}')" class="delete-btn">Delete</button>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading users:', error);
-    }
-}
-
-// Employee Management
-async function loadEmployees() {
-    try {
-        const response = await fetch('/api/team', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const employees = await response.json();
-        
-        const employeesList = document.getElementById('employees-list');
-        employeesList.innerHTML = employees.map(employee => `
-            <div class="card">
-                <div class="employee-info">
-                    <h3>${employee.name}</h3>
-                    <p>Role: ${employee.role}</p>
-                    <p>Status: ${employee.available ? 'Available' : 'Not Available'}</p>
-                </div>
-                <div class="card-actions">
-                    <button onclick="editEmployee('${employee._id}')">Edit</button>
-                    <button onclick="deleteEmployee('${employee._id}')" class="delete-btn">Delete</button>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading employees:', error);
-    }
-}
-
-// Services Management
-async function loadServices() {
-    try {
-        const response = await fetch('/api/services');
-        const services = await response.json();
-        
-        const servicesList = document.getElementById('services-list');
-        servicesList.innerHTML = services.map(service => `
-            <div class="card">
-                <h3>${service.name}</h3>
-                <p>${service.description || ''}</p>
-                <p>Price: ${service.price} NOK</p>
-                <div class="card-actions">
-                    <button onclick="editService('${service._id}')">Edit</button>
-                    <button onclick="deleteService('${service._id}')" class="delete-btn">Delete</button>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading services:', error);
-    }
-}
-
-// Bookings Management
-async function loadBookings() {
-    try {
-        const response = await fetch('/api/bookings', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const bookings = await response.json();
-        
-        const bookingsList = document.getElementById('bookings-list');
-        bookingsList.innerHTML = bookings.map(booking => `
-            <div class="card">
-                <h3>Booking #${booking._id}</h3>
-                <p>Date: ${new Date(booking.date).toLocaleDateString()}</p>
-                <p>Time: ${booking.time}</p>
-                <p>Service: ${booking.service}</p>
-                <p>Customer: ${booking.customerName}</p>
-                <div class="card-actions">
-                    <button onclick="editBooking('${booking._id}')">Edit</button>
-                    <button onclick="deleteBooking('${booking._id}')" class="delete-btn">Cancel</button>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading bookings:', error);
-    }
-}
-
-// Gallery Management
-function initializeGallery() {
-    loadGallery();
-    
-    const galleryModal = new bootstrap.Modal(document.getElementById('galleryModal'));
-    const uploadForm = document.getElementById('gallery-upload-form');
-    const photoInput = document.getElementById('gallery-photos');
-    const previewContainer = document.getElementById('preview-container');
-    const progressBar = document.querySelector('.progress-bar');
-    const progress = document.querySelector('.progress');
-
-    document.getElementById('add-gallery-btn').addEventListener('click', () => {
-        previewContainer.innerHTML = '';
-        uploadForm.reset();
-        galleryModal.show();
-    });
-
-    photoInput.addEventListener('change', function() {
-        previewContainer.innerHTML = '';
-        [...this.files].forEach(file => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const preview = document.createElement('div');
-                preview.className = 'col-4';
-                preview.innerHTML = `
-                    <div class="position-relative">
-                        <img src="${e.target.result}" class="img-fluid rounded" alt="Preview">
-                        <button type="button" class="btn-close position-absolute top-0 end-0 m-1" 
-                                aria-label="Remove"></button>
-                    </div>
-                `;
-                preview.querySelector('.btn-close').addEventListener('click', () => {
-                    preview.remove();
-                });
-                previewContainer.appendChild(preview);
-            };
-            reader.readAsDataURL(file);
         });
     });
 
-    document.getElementById('upload-gallery').addEventListener('click', async function() {
-        const files = photoInput.files;
-        if (files.length === 0) return;
+    // Logout
+    document.getElementById('logout').addEventListener('click', () => {
+        localStorage.removeItem('token');
+        window.location.href = '/admin/login';
+    });
 
-        const formData = new FormData();
-        [...files].forEach(file => {
-            formData.append('photos', file);
-        });
-
-        progress.style.display = 'block';
-        progressBar.style.width = '0%';
-
+    // Services Management
+    async function loadServices() {
         try {
-            const response = await fetch('/api/gallery/upload', {
+            const response = await fetch('/api/services', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const services = await response.json();
+            const tbody = document.getElementById('services-table-body');
+            tbody.innerHTML = '';
+            
+            services.forEach(service => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${service.name}</td>
+                    <td>${service.description}</td>
+                    <td>${service.price} NOK</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-service" data-id="${service._id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-service" data-id="${service._id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Update service select in booking forms
+            const serviceSelects = document.querySelectorAll('select[name="service"]');
+            serviceSelects.forEach(select => {
+                select.innerHTML = services.map(service => 
+                    `<option value="${service._id}">${service.name} - ${service.price} NOK</option>`
+                ).join('');
+            });
+        } catch (error) {
+            console.error('Error loading services:', error);
+            alert('Error loading services. Please try again.');
+        }
+    }
+
+    // Add Service
+    document.getElementById('add-service-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        try {
+            const response = await fetch('/api/services', {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    name: formData.get('name'),
+                    description: formData.get('description'),
+                    price: Number(formData.get('price'))
+                })
+            });
+            
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('addServiceModal')).hide();
+                e.target.reset();
+                loadServices();
+            } else {
+                throw new Error('Failed to add service');
+            }
+        } catch (error) {
+            console.error('Error adding service:', error);
+            alert('Error adding service. Please try again.');
+        }
+    });
+
+    // Edit Service
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.edit-service')) {
+            const serviceId = e.target.closest('.edit-service').dataset.id;
+            try {
+                const response = await fetch(`/api/services/${serviceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const service = await response.json();
+                
+                const form = document.getElementById('edit-service-form');
+                form.serviceId.value = service._id;
+                form.name.value = service.name;
+                form.description.value = service.description;
+                form.price.value = service.price;
+                
+                new bootstrap.Modal(document.getElementById('editServiceModal')).show();
+            } catch (error) {
+                console.error('Error loading service details:', error);
+                alert('Error loading service details. Please try again.');
+            }
+        }
+    });
+
+    document.getElementById('edit-service-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const serviceId = formData.get('serviceId');
+        
+        try {
+            const response = await fetch(`/api/services/${serviceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    name: formData.get('name'),
+                    description: formData.get('description'),
+                    price: Number(formData.get('price'))
+                })
+            });
+            
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editServiceModal')).hide();
+                loadServices();
+            } else {
+                throw new Error('Failed to update service');
+            }
+        } catch (error) {
+            console.error('Error updating service:', error);
+            alert('Error updating service. Please try again.');
+        }
+    });
+
+    // Delete Service
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.delete-service')) {
+            if (confirm('Are you sure you want to delete this service?')) {
+                const serviceId = e.target.closest('.delete-service').dataset.id;
+                try {
+                    const response = await fetch(`/api/services/${serviceId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        loadServices();
+                    } else {
+                        throw new Error('Failed to delete service');
+                    }
+                } catch (error) {
+                    console.error('Error deleting service:', error);
+                    alert('Error deleting service. Please try again.');
+                }
+            }
+        }
+    });
+
+    // Team Management
+    async function loadTeam() {
+        try {
+            const response = await fetch('/api/team', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const team = await response.json();
+            const tbody = document.getElementById('team-table-body');
+            tbody.innerHTML = '';
+            
+            team.forEach(member => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <img src="${member.image || '/images/default-avatar.png'}" 
+                             alt="${member.name}" 
+                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;">
+                    </td>
+                    <td>${member.name}</td>
+                    <td>${member.role}</td>
+                    <td>${member.description}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-team" data-id="${member._id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-team" data-id="${member._id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Update barber select in booking forms
+            const barberSelects = document.querySelectorAll('select[name="barber"]');
+            barberSelects.forEach(select => {
+                select.innerHTML = team.map(member => 
+                    `<option value="${member._id}">${member.name}</option>`
+                ).join('');
+            });
+        } catch (error) {
+            console.error('Error loading team:', error);
+            alert('Error loading team members. Please try again.');
+        }
+    }
+
+    // Add Team Member
+    document.getElementById('add-team-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        try {
+            const response = await fetch('/api/team', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
                 body: formData
             });
-
+            
             if (response.ok) {
-                showAlert('Photos uploaded successfully', 'success');
-                galleryModal.hide();
-                loadGallery();
+                bootstrap.Modal.getInstance(document.getElementById('addTeamModal')).hide();
+                e.target.reset();
+                loadTeam();
             } else {
-                throw new Error('Upload failed');
+                throw new Error('Failed to add team member');
             }
         } catch (error) {
-            showAlert('Error uploading photos', 'danger');
-        } finally {
-            progress.style.display = 'none';
+            console.error('Error adding team member:', error);
+            alert('Error adding team member. Please try again.');
         }
     });
-}
 
-async function loadGallery() {
-    try {
-        const response = await fetch('/api/gallery');
-        const photos = await response.json();
-        
-        const galleryGrid = document.getElementById('gallery-grid');
-        galleryGrid.innerHTML = photos.map(photo => `
-            <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card h-100">
-                    <img src="${photo.url}" class="card-img-top" alt="${photo.title || 'Gallery Image'}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <button class="btn btn-sm btn-outline-danger" onclick="deletePhoto('${photo._id}')">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                            <small class="text-muted">${new Date(photo.createdAt).toLocaleDateString()}</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading gallery:', error);
-        showAlert('Error loading gallery', 'danger');
-    }
-}
-
-async function deletePhoto(photoId) {
-    if (!confirm('Are you sure you want to delete this photo?')) return;
-
-    try {
-        const response = await fetch(`/api/gallery/${photoId}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            showAlert('Photo deleted successfully', 'success');
-            loadGallery();
-        } else {
-            throw new Error('Delete failed');
-        }
-    } catch (error) {
-        console.error('Error deleting photo:', error);
-        showAlert('Error deleting photo', 'danger');
-    }
-}
-
-// Customer Reviews Management
-async function loadReviews() {
-    try {
-        const response = await fetch('/api/reviews');
-        const reviews = await response.json();
-        
-        document.getElementById('reviews-list').innerHTML = reviews.map(review => `
-            <tr>
-                <td>${review.customerName}</td>
-                <td>
-                    ${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}
-                </td>
-                <td>${review.text}</td>
-                <td>${new Date(review.createdAt).toLocaleDateString()}</td>
-                <td>
-                    <span class="badge bg-${review.approved ? 'success' : 'warning'}">
-                        ${review.approved ? 'Approved' : 'Pending'}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-${review.approved ? 'warning' : 'success'}" 
-                            onclick="toggleReviewStatus('${review._id}', ${!review.approved})">
-                        ${review.approved ? 'Unpublish' : 'Publish'}
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteReview('${review._id}')">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading reviews:', error);
-        showAlert('Error loading reviews', 'danger');
-    }
-}
-
-async function toggleReviewStatus(reviewId, approved) {
-    try {
-        const response = await fetch(`/api/reviews/${reviewId}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ approved })
-        });
-
-        if (response.ok) {
-            showAlert('Review status updated', 'success');
-            loadReviews();
-        } else {
-            throw new Error('Update failed');
-        }
-    } catch (error) {
-        console.error('Error updating review:', error);
-        showAlert('Error updating review', 'danger');
-    }
-}
-
-// Activity Log
-async function loadActivityLog() {
-    try {
-        const response = await fetch('/api/activity-log');
-        const activities = await response.json();
-        
-        document.getElementById('activity-log').innerHTML = activities.map(activity => `
-            <tr>
-                <td>${new Date(activity.timestamp).toLocaleString()}</td>
-                <td>${activity.user}</td>
-                <td>${activity.action}</td>
-                <td>${activity.details}</td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading activity log:', error);
-        showAlert('Error loading activity log', 'danger');
-    }
-}
-
-// Contact Info Management
-async function loadContactInfo() {
-    try {
-        const response = await fetch('/api/contact', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const contactInfo = await response.json();
-        
-        // Populate form fields
-        document.getElementById('sandnes-address').value = contactInfo.sandnes.address;
-        document.getElementById('sandnes-phone').value = contactInfo.sandnes.phone;
-        document.getElementById('klepp-address').value = contactInfo.klepp.address;
-        document.getElementById('klepp-phone').value = contactInfo.klepp.phone;
-        document.getElementById('instagram-url').value = contactInfo.social.instagram;
-        document.getElementById('facebook-url').value = contactInfo.social.facebook;
-    } catch (error) {
-        console.error('Error loading contact info:', error);
-    }
-}
-
-// Settings Management
-async function loadSettings() {
-    try {
-        const response = await fetch('/api/settings', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const settings = await response.json();
-        
-        document.getElementById('language-preference').value = settings.language;
-        document.getElementById('email-notifications').checked = settings.emailNotifications;
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
-}
-
-// Service Management Functions
-async function addService() {
-    const name = document.getElementById('service-name').value;
-    const description = document.getElementById('service-description').value;
-    const price = document.getElementById('service-price').value;
-
-    if (!name || !price) {
-        alert('Name and price are required!');
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/services', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-                name,
-                description,
-                price: Number(price)
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to add service');
-        }
-
-        // Clear form
-        document.getElementById('service-name').value = '';
-        document.getElementById('service-description').value = '';
-        document.getElementById('service-price').value = '';
-
-        // Reload services
-        loadServices();
-    } catch (error) {
-        console.error('Error adding service:', error);
-        alert(error.message || 'Failed to add service. Please try again.');
-    }
-}
-
-async function deleteService(serviceId) {
-    if (!confirm('Are you sure you want to delete this service?')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/services/${serviceId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to delete service');
-        }
-
-        loadServices();
-    } catch (error) {
-        console.error('Error deleting service:', error);
-        alert(error.message || 'Failed to delete service. Please try again.');
-    }
-}
-
-// Backup and Restore Functions
-async function backupData() {
-    try {
-        const responses = await Promise.all([
-            fetch('/api/services', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
-            fetch('/api/team', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
-            fetch('/api/bookings', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
-            fetch('/api/gallery', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
-            fetch('/api/contact', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
-            fetch('/api/settings', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
-        ]);
-        
-        const [services, team, bookings, gallery, contact, settings] = await Promise.all(
-            responses.map(r => r.json())
-        );
-        
-        const backup = {
-            services,
-            team,
-            bookings,
-            gallery,
-            contact,
-            settings,
-            timestamp: new Date().toISOString()
-        };
-        
-        // Create and download backup file
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `barbershop_backup_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        // Log activity
-        const activity = new Activity({
-            description: 'Database backup created',
-            timestamp: new Date()
-        });
-        await activity.save();
-    } catch (error) {
-        console.error('Error creating backup:', error);
-        alert('Failed to create backup. Please try again.');
-    }
-}
-
-async function restoreData() {
-    try {
-        const fileInput = document.getElementById('restore-file');
-        const file = fileInput.files[0];
-        if (!file) {
-            alert('Please select a backup file');
-            return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = async (e) => {
+    // Edit Team Member
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.edit-team')) {
+            const memberId = e.target.closest('.edit-team').dataset.id;
             try {
-                const backup = JSON.parse(e.target.result);
-                
-                // Validate backup structure
-                const required = ['services', 'team', 'bookings', 'gallery', 'contact', 'settings'];
-                if (!required.every(key => key in backup)) {
-                    throw new Error('Invalid backup file structure');
-                }
-                
-                // Restore data
-                await Promise.all([
-                    fetch('/api/restore/services', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(backup.services)
-                    }),
-                    fetch('/api/restore/team', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(backup.team)
-                    }),
-                    fetch('/api/restore/bookings', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(backup.bookings)
-                    }),
-                    fetch('/api/restore/gallery', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(backup.gallery)
-                    }),
-                    fetch('/api/restore/contact', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(backup.contact)
-                    }),
-                    fetch('/api/restore/settings', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(backup.settings)
-                    })
-                ]);
-                
-                // Log activity
-                const activity = new Activity({
-                    description: 'Database restored from backup',
-                    timestamp: new Date()
+                const response = await fetch(`/api/team/${memberId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
                 });
-                await activity.save();
+                const member = await response.json();
                 
-                alert('Data restored successfully');
-                window.location.reload();
+                const form = document.getElementById('edit-team-form');
+                form.memberId.value = member._id;
+                form.name.value = member.name;
+                form.role.value = member.role;
+                form.description.value = member.description;
+                
+                new bootstrap.Modal(document.getElementById('editTeamModal')).show();
             } catch (error) {
-                console.error('Error restoring data:', error);
-                alert('Failed to restore data. Please ensure the backup file is valid.');
+                console.error('Error loading team member details:', error);
+                alert('Error loading team member details. Please try again.');
             }
-        };
-        reader.readAsText(file);
-    } catch (error) {
-        console.error('Error restoring data:', error);
-        alert('Failed to restore data. Please try again.');
-    }
-}
-
-// Utility Functions
-function handleLogout() {
-    localStorage.removeItem('token');
-    window.location.href = '/admin/login.html';
-}
-
-async function loadRecentActivity() {
-    try {
-        const response = await fetch('/api/activity', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const activities = await response.json();
-        
-        const activityList = document.getElementById('activity-list');
-        activityList.innerHTML = activities.map(activity => `
-            <div class="activity-item">
-                <span class="activity-time">${new Date(activity.timestamp).toLocaleTimeString()}</span>
-                <span class="activity-text">${activity.description}</span>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading recent activity:', error);
-    }
-}
-
-// Modal Functions
-function showAddUserModal() {
-    document.getElementById('add-user-modal').style.display = 'block';
-}
-
-function showAddEmployeeModal() {
-    document.getElementById('add-employee-modal').style.display = 'block';
-}
-
-function showRestoreModal() {
-    document.getElementById('restore-modal').style.display = 'block';
-}
-
-// Close all modals when clicking outside
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-};
-
-// Map initialization
-function initMaps() {
-    // Sandnes Map
-    const sandnesMap = new google.maps.Map(document.getElementById('sandnes-map'), {
-        zoom: 15,
-        center: { lat: 58.8517, lng: 5.7347 } // Sandnes coordinates
-    });
-    
-    // Klepp Map
-    const kleppMap = new google.maps.Map(document.getElementById('klepp-map'), {
-        zoom: 15,
-        center: { lat: 58.7889, lng: 5.6345 } // Klepp coordinates
-    });
-    
-    // Add markers when addresses are updated
-    document.getElementById('sandnes-address').addEventListener('change', function() {
-        updateMapMarker(this.value, sandnesMap, 'Sandnes Branch');
-    });
-    
-    document.getElementById('klepp-address').addEventListener('change', function() {
-        updateMapMarker(this.value, kleppMap, 'Klepp Branch');
-    });
-}
-
-function updateMapMarker(address, map, title) {
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ address: address }, (results, status) => {
-        if (status === 'OK') {
-            map.setCenter(results[0].geometry.location);
-            new google.maps.Marker({
-                map: map,
-                position: results[0].geometry.location,
-                title: title
-            });
         }
     });
-}
 
-// Calendar Management
-function initializeCalendar() {
-    const calendar = document.getElementById('bookings-calendar');
-    let currentDate = new Date();
-
-    function updateCalendar() {
-        fetch(`/api/bookings/week/${currentDate.toISOString()}`)
-            .then(response => response.json())
-            .then(bookings => {
-                renderCalendarView(calendar, currentDate, bookings);
-            })
-            .catch(error => {
-                console.error('Error loading calendar:', error);
-                showAlert('Error loading calendar', 'danger');
+    document.getElementById('edit-team-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const memberId = formData.get('memberId');
+        
+        try {
+            const response = await fetch(`/api/team/${memberId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: formData
             });
+            
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editTeamModal')).hide();
+                loadTeam();
+            } else {
+                throw new Error('Failed to update team member');
+            }
+        } catch (error) {
+            console.error('Error updating team member:', error);
+            alert('Error updating team member. Please try again.');
+        }
+    });
+
+    // Delete Team Member
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.delete-team')) {
+            if (confirm('Are you sure you want to delete this team member?')) {
+                const memberId = e.target.closest('.delete-team').dataset.id;
+                try {
+                    const response = await fetch(`/api/team/${memberId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        loadTeam();
+                    } else {
+                        throw new Error('Failed to delete team member');
+                    }
+                } catch (error) {
+                    console.error('Error deleting team member:', error);
+                    alert('Error deleting team member. Please try again.');
+                }
+            }
+        }
+    });
+
+    // Bookings Management
+    async function loadBookings() {
+        try {
+            const response = await fetch('/api/bookings', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const bookings = await response.json();
+            const tbody = document.getElementById('bookings-table-body');
+            tbody.innerHTML = '';
+            
+            bookings.forEach(booking => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${booking.customerName}<br>
+                        <small>${booking.customerEmail}<br>${booking.customerPhone}</small>
+                    </td>
+                    <td>${booking.service.name}</td>
+                    <td>${booking.barber.name}</td>
+                    <td>${new Date(booking.date).toLocaleDateString()}</td>
+                    <td>${booking.time}</td>
+                    <td>
+                        <span class="badge bg-${getStatusBadgeColor(booking.status)}">
+                            ${booking.status}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-booking" data-id="${booking._id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-booking" data-id="${booking._id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Update today's bookings count
+            const todayBookings = bookings.filter(booking => 
+                new Date(booking.date).toDateString() === new Date().toDateString()
+            ).length;
+            document.getElementById('today-bookings').textContent = todayBookings;
+        } catch (error) {
+            console.error('Error loading bookings:', error);
+            alert('Error loading bookings. Please try again.');
+        }
     }
 
-    document.getElementById('prev-week').addEventListener('click', () => {
-        currentDate.setDate(currentDate.getDate() - 7);
-        updateCalendar();
-    });
+    function getStatusBadgeColor(status) {
+        switch (status) {
+            case 'pending': return 'warning';
+            case 'confirmed': return 'primary';
+            case 'completed': return 'success';
+            case 'cancelled': return 'danger';
+            default: return 'secondary';
+        }
+    }
 
-    document.getElementById('next-week').addEventListener('click', () => {
-        currentDate.setDate(currentDate.getDate() + 7);
-        updateCalendar();
-    });
-
-    updateCalendar();
-}
-
-// Analytics Charts
-function initializeCharts() {
-    // Revenue Chart
-    const revenueCtx = document.getElementById('revenue-chart').getContext('2d');
-    fetch('/api/analytics/revenue')
-        .then(response => response.json())
-        .then(data => {
-            new Chart(revenueCtx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Revenue (NOK)',
-                        data: data.values,
-                        borderColor: '#2c3e50',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
-                }
-            });
-        });
-
-    // Services Chart
-    const servicesCtx = document.getElementById('services-chart').getContext('2d');
-    fetch('/api/analytics/services')
-        .then(response => response.json())
-        .then(data => {
-            new Chart(servicesCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        data: data.values,
-                        backgroundColor: [
-                            '#2c3e50',
-                            '#34495e',
-                            '#7f8c8d',
-                            '#95a5a6',
-                            '#bdc3c7'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'right'
-                        }
-                    }
-                }
-            });
-        });
-}
-
-// Business Hours Management
-function initializeBusinessHours() {
-    const container = document.getElementById('business-hours-container');
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    
-    days.forEach(day => {
-        container.innerHTML += `
-            <div class="mb-3">
-                <label class="form-label">${day}</label>
-                <div class="d-flex gap-2">
-                    <input type="time" class="form-control" id="${day.toLowerCase()}-open" style="width: 120px">
-                    <span class="align-self-center">to</span>
-                    <input type="time" class="form-control" id="${day.toLowerCase()}-close" style="width: 120px">
-                    <div class="form-check align-self-center ms-2">
-                        <input class="form-check-input" type="checkbox" id="${day.toLowerCase()}-closed">
-                        <label class="form-check-label">Closed</label>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    document.getElementById('business-hours-form').addEventListener('submit', function(e) {
+    // Add Booking
+    document.getElementById('add-booking-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const hours = {};
-        days.forEach(day => {
-            const dayLower = day.toLowerCase();
-            hours[dayLower] = {
-                closed: document.getElementById(`${dayLower}-closed`).checked,
-                open: document.getElementById(`${dayLower}-open`).value,
-                close: document.getElementById(`${dayLower}-close`).value
-            };
-        });
-
-        fetch('/api/settings/hours', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(hours)
-        })
-        .then(response => response.json())
-        .then(() => {
-            showAlert('Business hours updated successfully', 'success');
-        })
-        .catch(error => {
-            console.error('Error updating business hours:', error);
-            showAlert('Error updating business hours', 'danger');
-        });
+        const formData = new FormData(e.target);
+        try {
+            const response = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    customerName: formData.get('customerName'),
+                    customerEmail: formData.get('customerEmail'),
+                    customerPhone: formData.get('customerPhone'),
+                    service: formData.get('service'),
+                    barber: formData.get('barber'),
+                    date: formData.get('date'),
+                    time: formData.get('time'),
+                    notes: formData.get('notes'),
+                    status: 'pending'
+                })
+            });
+            
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('addBookingModal')).hide();
+                e.target.reset();
+                loadBookings();
+            } else {
+                throw new Error('Failed to add booking');
+            }
+        } catch (error) {
+            console.error('Error adding booking:', error);
+            alert('Error adding booking. Please try again.');
+        }
     });
-}
 
-// Export Functionality
-document.getElementById('export-bookings').addEventListener('click', function() {
-    fetch('/api/bookings/export')
-        .then(response => response.blob())
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `bookings-${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-        })
-        .catch(error => {
-            console.error('Error exporting bookings:', error);
-            showAlert('Error exporting bookings', 'danger');
-        });
+    // Edit Booking
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.edit-booking')) {
+            const bookingId = e.target.closest('.edit-booking').dataset.id;
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const booking = await response.json();
+                
+                const form = document.getElementById('edit-booking-form');
+                form.bookingId.value = booking._id;
+                form.customerName.value = booking.customerName;
+                form.customerEmail.value = booking.customerEmail;
+                form.customerPhone.value = booking.customerPhone;
+                form.service.value = booking.service._id;
+                form.barber.value = booking.barber._id;
+                form.date.value = booking.date.split('T')[0];
+                form.time.value = booking.time;
+                form.status.value = booking.status;
+                form.notes.value = booking.notes || '';
+                
+                new bootstrap.Modal(document.getElementById('editBookingModal')).show();
+            } catch (error) {
+                console.error('Error loading booking details:', error);
+                alert('Error loading booking details. Please try again.');
+            }
+        }
+    });
+
+    document.getElementById('edit-booking-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const bookingId = formData.get('bookingId');
+        
+        try {
+            const response = await fetch(`/api/bookings/${bookingId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    customerName: formData.get('customerName'),
+                    customerEmail: formData.get('customerEmail'),
+                    customerPhone: formData.get('customerPhone'),
+                    service: formData.get('service'),
+                    barber: formData.get('barber'),
+                    date: formData.get('date'),
+                    time: formData.get('time'),
+                    status: formData.get('status'),
+                    notes: formData.get('notes')
+                })
+            });
+            
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editBookingModal')).hide();
+                loadBookings();
+            } else {
+                throw new Error('Failed to update booking');
+            }
+        } catch (error) {
+            console.error('Error updating booking:', error);
+            alert('Error updating booking. Please try again.');
+        }
+    });
+
+    // Delete Booking
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.delete-booking')) {
+            if (confirm('Are you sure you want to delete this booking?')) {
+                const bookingId = e.target.closest('.delete-booking').dataset.id;
+                try {
+                    const response = await fetch(`/api/bookings/${bookingId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        loadBookings();
+                    } else {
+                        throw new Error('Failed to delete booking');
+                    }
+                } catch (error) {
+                    console.error('Error deleting booking:', error);
+                    alert('Error deleting booking. Please try again.');
+                }
+            }
+        }
+    });
+
+    // Initial load
+    loadServices();
+    loadTeam();
+    loadBookings();
 });
-
-// Advanced Analytics
-function initializeAnalytics() {
-    // Revenue Trends Chart
-    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-    const revenueChart = new Chart(revenueCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Revenue',
-                data: [],
-                borderColor: '#4CAF50',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
-            }
-        }
-    });
-
-    // Time Slot Chart
-    const timeSlotCtx = document.getElementById('timeSlotChart').getContext('2d');
-    const timeSlotChart = new Chart(timeSlotCtx, {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Bookings',
-                data: [],
-                backgroundColor: '#2196F3'
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
-            }
-        }
-    });
-
-    // Service Performance Chart
-    const serviceCtx = document.getElementById('serviceChart').getContext('2d');
-    const serviceChart = new Chart(serviceCtx, {
-        type: 'doughnut',
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                backgroundColor: [
-                    '#4CAF50',
-                    '#2196F3',
-                    '#FFC107',
-                    '#9C27B0',
-                    '#F44336'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'right',
-                }
-            }
-        }
-    });
-
-    // Demographics Chart
-    const demographicsCtx = document.getElementById('demographicsChart').getContext('2d');
-    const demographicsChart = new Chart(demographicsCtx, {
-        type: 'pie',
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                backgroundColor: [
-                    '#4CAF50',
-                    '#2196F3',
-                    '#FFC107',
-                    '#9C27B0'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'right',
-                }
-            }
-        }
-    });
-
-    // Load Analytics Data
-    loadAnalyticsData('week');
-
-    // Time Range Buttons
-    document.querySelectorAll('[data-range]').forEach(button => {
-        button.addEventListener('click', (e) => {
-            document.querySelectorAll('[data-range]').forEach(btn => btn.classList.remove('active'));
-            e.target.classList.add('active');
-            loadAnalyticsData(e.target.dataset.range);
-        });
-    });
-}
-
-async function loadAnalyticsData(timeRange) {
-    try {
-        const response = await fetch(`/api/analytics?range=${timeRange}`);
-        const data = await response.json();
-
-        // Update Charts
-        updateRevenueChart(data.revenue);
-        updateTimeSlotChart(data.timeSlots);
-        updateServiceChart(data.services);
-        updateDemographicsChart(data.demographics);
-
-        // Update Metrics
-        document.getElementById('retentionRate').textContent = data.metrics.retentionRate + '%';
-        document.getElementById('avgBookingValue').textContent = '$' + data.metrics.avgBookingValue;
-        document.getElementById('newCustomers').textContent = data.metrics.newCustomers;
-        document.getElementById('satisfactionRate').textContent = data.metrics.satisfactionRate + '%';
-    } catch (error) {
-        console.error('Error loading analytics:', error);
-        showAlert('Error loading analytics data', 'danger');
-    }
-}
-
-// Marketing Tools
-function initializeMarketingTools() {
-    const emailForm = document.getElementById('emailCampaignForm');
-    const smsForm = document.getElementById('smsCampaignForm');
-    const smsTextarea = smsForm.querySelector('textarea');
-    const smsChars = document.getElementById('smsChars');
-
-    emailForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        try {
-            const formData = new FormData(emailForm);
-            const response = await fetch('/api/marketing/email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(Object.fromEntries(formData))
-            });
-
-            if (response.ok) {
-                showAlert('Email campaign created successfully', 'success');
-                emailForm.reset();
-            } else {
-                throw new Error('Failed to create email campaign');
-            }
-        } catch (error) {
-            console.error('Error creating email campaign:', error);
-            showAlert('Error creating email campaign', 'danger');
-        }
-    });
-
-    smsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        try {
-            const formData = new FormData(smsForm);
-            const response = await fetch('/api/marketing/sms', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(Object.fromEntries(formData))
-            });
-
-            if (response.ok) {
-                showAlert('SMS campaign sent successfully', 'success');
-                smsForm.reset();
-            } else {
-                throw new Error('Failed to send SMS campaign');
-            }
-        } catch (error) {
-            console.error('Error sending SMS campaign:', error);
-            showAlert('Error sending SMS campaign', 'danger');
-        }
-    });
-
-    smsTextarea.addEventListener('input', () => {
-        const remaining = 160 - smsTextarea.value.length;
-        smsChars.textContent = remaining;
-    });
-}
-
-// Inventory Management
-async function loadInventory() {
-    try {
-        const response = await fetch('/api/inventory');
-        const products = await response.json();
-        
-        document.getElementById('inventoryList').innerHTML = products.map(product => `
-            <tr>
-                <td>${product.name}</td>
-                <td>${product.category}</td>
-                <td>
-                    <span class="badge bg-${product.stock > 10 ? 'success' : 'warning'}">
-                        ${product.stock}
-                    </span>
-                </td>
-                <td>$${product.price}</td>
-                <td>
-                    <span class="badge bg-${product.status === 'active' ? 'success' : 'secondary'}">
-                        ${product.status}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct('${product._id}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${product._id}')">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading inventory:', error);
-        showAlert('Error loading inventory', 'danger');
-    }
-}
-
-// Staff Schedule
-function initializeSchedule() {
-    const calendar = new FullCalendar.Calendar(document.getElementById('scheduleCalendar'), {
-        initialView: 'timeGridWeek',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'timeGridWeek,timeGridDay'
-        },
-        slotMinTime: '09:00:00',
-        slotMaxTime: '21:00:00',
-        allDaySlot: false,
-        slotDuration: '00:30:00',
-        events: '/api/schedule',
-        editable: true,
-        eventClick: function(info) {
-            editShift(info.event);
-        },
-        eventDrop: function(info) {
-            updateShift(info.event);
-        },
-        eventResize: function(info) {
-            updateShift(info.event);
-        }
-    });
-
-    calendar.render();
-}
