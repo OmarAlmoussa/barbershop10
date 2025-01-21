@@ -13,6 +13,11 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
+// Admin route
+app.get('/admin', (req, res) => {
+    res.redirect('/admin/login.html');
+});
+
 // Routes
 const authRoutes = require('./routes/auth');
 const serviceRoutes = require('./routes/services');
