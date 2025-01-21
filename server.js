@@ -344,14 +344,37 @@ app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
+// Create default admin user if none exists
+async function createDefaultAdmin() {
+    try {
+        const adminExists = await User.findOne({ username: 'admin' });
+        if (!adminExists) {
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+            const admin = new User({
+                username: 'admin',
+                password: hashedPassword,
+                role: 'admin'
+            });
+            await admin.save();
+            console.log('Default admin user created');
+        }
+    } catch (error) {
+        console.error('Error creating default admin:', error);
+    }
+}
+
 // Start Server
 console.log('Starting server with configuration:', {
     port: PORT,
+    mongoUri: process.env.MONGODB_URI,
     env: process.env.NODE_ENV
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
     const address = server.address();
     console.log(`Server is running on port ${address.port}`);
     console.log('Server address:', address);
+    
+    // Create default admin user
+    await createDefaultAdmin();
 });
