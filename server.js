@@ -47,14 +47,14 @@ mongoose
     .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Start Server
-const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0';
+const port = process.env.PORT || 10000;
+console.log('Starting server with configuration:', {
+    port: port,
+    env: process.env.NODE_ENV
+});
 
-app.listen(PORT, HOST, () => {
-    console.log(`Server is running at http://${HOST}:${PORT}`);
-    console.log('Environment:', {
-        PORT: process.env.PORT,
-        NODE_ENV: process.env.NODE_ENV,
-        HOST: HOST
-    });
+const server = app.listen(port, () => {
+    const address = server.address();
+    console.log(`Server is running on port ${address.port}`);
+    console.log('Server address:', address);
 });

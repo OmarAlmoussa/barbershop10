@@ -2,10 +2,10 @@ services:
   - type: web
     name: barbershop10
     env: node
+    plan: free
     buildCommand: npm install
     startCommand: node server.js
     envVars:
-      - key: PORT
-        value: 3000
       - key: NODE_ENV
         value: production
+    autoDeploy: false
