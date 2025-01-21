@@ -47,6 +47,181 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// Public API Routes (Homepage)
+app.get('/api/services', async (req, res) => {
+    try {
+        const services = await Service.find().sort('name');
+        res.json(services);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching services' });
+    }
+});
+
+app.get('/api/team', async (req, res) => {
+    try {
+        const team = await TeamMember.find({ isAvailable: true }).sort('name');
+        res.json(team);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching team members' });
+    }
+});
+
+app.get('/api/gallery', async (req, res) => {
+    try {
+        const gallery = await Gallery.find().sort('-createdAt');
+        res.json(gallery);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching gallery' });
+    }
+});
+
+app.get('/api/contact', async (req, res) => {
+    try {
+        const contact = await Contact.findOne();
+        res.json(contact);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching contact info' });
+    }
+});
+
+app.get('/api/available-times', async (req, res) => {
+    try {
+        const { date, barber } = req.query;
+        const existingBookings = await Booking.find({
+            barber,
+            date,
+            status: { $ne: 'cancelled' }
+        });
+        
+        // Generate available time slots (9:00 to 19:00)
+        const timeSlots = [];
+        for (let hour = 9; hour < 19; hour++) {
+            const time = `${hour.toString().padStart(2, '0')}:00`;
+            if (!existingBookings.some(booking => booking.time === time)) {
+                timeSlots.push(time);
+            }
+        }
+        
+        res.json(timeSlots);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching available times' });
+    }
+});
+
+// Protected Admin API Routes
+app.post('/api/admin/services', auth, async (req, res) => {
+    try {
+        const service = new Service(req.body);
+        await service.save();
+        
+        // Log activity
+        const activity = new Activity({
+            description: `Added new service: ${service.name}`,
+            timestamp: new Date()
+        });
+        await activity.save();
+        
+        res.status(201).json(service);
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating service' });
+    }
+});
+
+app.post('/api/admin/team', auth, upload.single('image'), async (req, res) => {
+    try {
+        const teamMember = new TeamMember({
+            ...req.body,
+            image: req.file ? `/uploads/${req.file.filename}` : null
+        });
+        await teamMember.save();
+        
+        // Log activity
+        const activity = new Activity({
+            description: `Added new team member: ${teamMember.name}`,
+            timestamp: new Date()
+        });
+        await activity.save();
+        
+        res.status(201).json(teamMember);
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating team member' });
+    }
+});
+
+app.post('/api/admin/gallery', auth, upload.single('image'), async (req, res) => {
+    try {
+        const gallery = new Gallery({
+            title: req.body.title,
+            url: `/uploads/${req.file.filename}`
+        });
+        await gallery.save();
+        
+        // Log activity
+        const activity = new Activity({
+            description: `Added new gallery image: ${gallery.title}`,
+            timestamp: new Date()
+        });
+        await activity.save();
+        
+        res.status(201).json(gallery);
+    } catch (error) {
+        res.status(500).json({ message: 'Error uploading image' });
+    }
+});
+
+app.put('/api/admin/contact', auth, async (req, res) => {
+    try {
+        const contact = await Contact.findOneAndUpdate({}, req.body, { 
+            new: true,
+            upsert: true
+        });
+        
+        // Log activity
+        const activity = new Activity({
+            description: 'Updated contact information',
+            timestamp: new Date()
+        });
+        await activity.save();
+        
+        res.json(contact);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating contact info' });
+    }
+});
+
+app.get('/api/admin/bookings', auth, async (req, res) => {
+    try {
+        const bookings = await Booking.find()
+            .populate('service')
+            .populate('barber')
+            .sort('-date');
+        res.json(bookings);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching bookings' });
+    }
+});
+
+app.put('/api/admin/bookings/:id', auth, async (req, res) => {
+    try {
+        const booking = await Booking.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+        
+        // Log activity
+        const activity = new Activity({
+            description: `Updated booking for ${booking.customerName}`,
+            timestamp: new Date()
+        });
+        await activity.save();
+        
+        res.json(booking);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating booking' });
+    }
+});
+
 // Auth Routes
 app.post('/api/auth/login', async (req, res) => {
     try {
