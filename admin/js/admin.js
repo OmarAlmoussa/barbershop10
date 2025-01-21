@@ -273,58 +273,67 @@ document.getElementById('add-team-form').addEventListener('submit', async (e) =>
     e.preventDefault();
     console.log('Add Member button clicked');
 
-    const formData = {
-        name: document.getElementById('team-name').value.trim(),
-        email: document.getElementById('team-email').value.trim(),
-        role: document.getElementById('team-role').value.trim(),
-        bio: document.getElementById('team-bio').value.trim(),
-        photo: null
-    };
-
-    // Validate required fields
-    if (!formData.name || !formData.email || !formData.role || !formData.bio) {
-        alert('Please fill in all required fields.');
-        return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-        alert('Please enter a valid email address.');
-        return;
-    }
-
-    // Handle photo upload
-    const photoInput = document.getElementById('team-photo');
-    if (photoInput.files.length > 0) {
-        const file = photoInput.files[0];
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Photo size must be less than 5MB.');
-            return;
-        }
-        // Convert photo to base64
-        try {
-            const base64Photo = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-            formData.photo = base64Photo;
-        } catch (error) {
-            console.error('Error converting photo to base64:', error);
-            alert('Error processing photo. Please try again.');
-            return;
-        }
-    }
-
-    console.log('Submitting team member data:', { 
-        ...formData, 
-        photo: formData.photo ? 'base64_data' : null 
-    });
-
     try {
+        const formData = {
+            name: document.getElementById('team-name').value.trim(),
+            email: document.getElementById('team-email').value.trim(),
+            role: document.getElementById('team-role').value.trim(),
+            bio: document.getElementById('team-bio').value.trim(),
+            photo: null
+        };
+
+        // Log the form data being submitted
+        console.log('Form data:', {
+            ...formData,
+            photo: formData.photo ? 'base64_data' : null
+        });
+
+        // Validate required fields
+        const missingFields = [];
+        if (!formData.name) missingFields.push('Name');
+        if (!formData.email) missingFields.push('Email');
+        if (!formData.role) missingFields.push('Role');
+        if (!formData.bio) missingFields.push('Bio');
+
+        if (missingFields.length > 0) {
+            alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            alert('Please enter a valid email address.');
+            return;
+        }
+
+        // Handle photo upload
+        const photoInput = document.getElementById('team-photo');
+        if (photoInput.files.length > 0) {
+            const file = photoInput.files[0];
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Photo size must be less than 5MB.');
+                return;
+            }
+            // Convert photo to base64
+            try {
+                const base64Photo = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                formData.photo = base64Photo;
+            } catch (error) {
+                console.error('Error converting photo to base64:', error);
+                alert('Error processing photo. Please try again.');
+                return;
+            }
+        }
+
+        console.log('Submitting team member data...');
+
         const response = await fetchWithAuth('/api/team', {
             method: 'POST',
             headers: {
@@ -333,20 +342,37 @@ document.getElementById('add-team-form').addEventListener('submit', async (e) =>
             body: JSON.stringify(formData)
         });
         
+        let responseData;
+        try {
+            responseData = await response.json();
+        } catch (error) {
+            console.error('Error parsing response:', error);
+            alert('Server response was not in the expected format. Please try again.');
+            return;
+        }
+        
         if (!response.ok) {
-            const errorDetails = await response.json();
-            console.error('Server error:', errorDetails);
-            alert(errorDetails.message || 'Failed to add team member.');
+            console.error('Server error:', responseData);
+            alert(responseData.message || 'Failed to add team member. Please check the console for details.');
             return;
         }
 
-        $('#addTeamModal').modal('hide');
+        // Hide modal using Bootstrap
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addTeamModal'));
+        if (modal) {
+            modal.hide();
+        }
+
+        // Reset form
         e.target.reset();
-        loadTeam();
+        
+        // Reload team members
+        await loadTeam();
+        
         alert('Team member added successfully!');
     } catch (error) {
         console.error('Error adding team member:', error);
-        alert('Error adding team member. Please try again.');
+        alert('An unexpected error occurred. Please check the console for details.');
     }
 });
 

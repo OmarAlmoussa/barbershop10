@@ -498,22 +498,49 @@ app.get('/api/team', async (req, res) => {
 
 app.post('/api/team', auth, async (req, res) => {
     try {
+        console.log('Received team member data:', {
+            ...req.body,
+            photo: req.body.photo ? 'base64_data' : null
+        });
+        
         const { name, email, role, bio, photo } = req.body;
         
         // Validate required fields
-        if (!name || !email || !role || !bio) {
+        const missingFields = [];
+        if (!name) missingFields.push('name');
+        if (!email) missingFields.push('email');
+        if (!role) missingFields.push('role');
+        if (!bio) missingFields.push('bio');
+
+        if (missingFields.length > 0) {
+            console.log('Missing required fields:', missingFields);
             return res.status(400).json({ 
-                message: 'Name, email, role, and bio are required fields' 
+                message: `Missing required fields: ${missingFields.join(', ')}` 
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            console.log('Invalid email format:', email);
+            return res.status(400).json({ 
+                message: 'Invalid email format' 
             });
         }
 
         // Create new team member
         const teamMember = new TeamMember({
-            name,
-            email,
-            role,
-            bio,
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            role: role.trim(),
+            bio: bio.trim(),
             photo: photo || null
+        });
+
+        console.log('Attempting to save team member:', {
+            name: teamMember.name,
+            email: teamMember.email,
+            role: teamMember.role
         });
 
         await teamMember.save();
@@ -526,12 +553,26 @@ app.post('/api/team', auth, async (req, res) => {
         });
         await activity.save();
 
+        console.log('Successfully created team member:', teamMember._id);
         res.status(201).json(teamMember);
     } catch (error) {
-        console.error('Error creating team member:', error);
+        console.error('Error creating team member:', {
+            message: error.message,
+            stack: error.stack,
+            code: error.code
+        });
+        
+        // Handle duplicate email error
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                message: 'Email address is already in use' 
+            });
+        }
+
         res.status(500).json({ 
             message: 'Error creating team member',
-            error: error.message 
+            error: error.message,
+            details: error.code === 11000 ? 'Duplicate email' : error.message
         });
     }
 });
@@ -1268,22 +1309,49 @@ app.put('/api/business-hours', auth, async (req, res) => {
 // Team Members API
 app.post('/api/team', auth, async (req, res) => {
     try {
+        console.log('Received team member data:', {
+            ...req.body,
+            photo: req.body.photo ? 'base64_data' : null
+        });
+        
         const { name, email, role, bio, photo } = req.body;
         
         // Validate required fields
-        if (!name || !email || !role || !bio) {
+        const missingFields = [];
+        if (!name) missingFields.push('name');
+        if (!email) missingFields.push('email');
+        if (!role) missingFields.push('role');
+        if (!bio) missingFields.push('bio');
+
+        if (missingFields.length > 0) {
+            console.log('Missing required fields:', missingFields);
             return res.status(400).json({ 
-                message: 'Name, email, role, and bio are required fields' 
+                message: `Missing required fields: ${missingFields.join(', ')}` 
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            console.log('Invalid email format:', email);
+            return res.status(400).json({ 
+                message: 'Invalid email format' 
             });
         }
 
         // Create new team member
         const teamMember = new TeamMember({
-            name,
-            email,
-            role,
-            bio,
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            role: role.trim(),
+            bio: bio.trim(),
             photo: photo || null
+        });
+
+        console.log('Attempting to save team member:', {
+            name: teamMember.name,
+            email: teamMember.email,
+            role: teamMember.role
         });
 
         await teamMember.save();
@@ -1296,12 +1364,26 @@ app.post('/api/team', auth, async (req, res) => {
         });
         await activity.save();
 
+        console.log('Successfully created team member:', teamMember._id);
         res.status(201).json(teamMember);
     } catch (error) {
-        console.error('Error creating team member:', error);
+        console.error('Error creating team member:', {
+            message: error.message,
+            stack: error.stack,
+            code: error.code
+        });
+        
+        // Handle duplicate email error
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                message: 'Email address is already in use' 
+            });
+        }
+
         res.status(500).json({ 
             message: 'Error creating team member',
-            error: error.message 
+            error: error.message,
+            details: error.code === 11000 ? 'Duplicate email' : error.message
         });
     }
 });
