@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "build": "echo 'No build step required'",
+    "build": "node scripts/createAdmin.js && echo 'Admin user created'",
     "dev": "nodemon server.js"
   },
   "dependencies": {
