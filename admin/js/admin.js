@@ -324,6 +324,148 @@ async function deleteService(serviceId) {
     }
 }
 
+// Backup and Restore Functions
+async function backupData() {
+    try {
+        const responses = await Promise.all([
+            fetch('/api/services', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
+            fetch('/api/team', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
+            fetch('/api/bookings', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
+            fetch('/api/gallery', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
+            fetch('/api/contact', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
+            fetch('/api/settings', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+        ]);
+        
+        const [services, team, bookings, gallery, contact, settings] = await Promise.all(
+            responses.map(r => r.json())
+        );
+        
+        const backup = {
+            services,
+            team,
+            bookings,
+            gallery,
+            contact,
+            settings,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Create and download backup file
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `barbershop_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Log activity
+        const activity = new Activity({
+            description: 'Database backup created',
+            timestamp: new Date()
+        });
+        await activity.save();
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        alert('Failed to create backup. Please try again.');
+    }
+}
+
+async function restoreData() {
+    try {
+        const fileInput = document.getElementById('restore-file');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please select a backup file');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const backup = JSON.parse(e.target.result);
+                
+                // Validate backup structure
+                const required = ['services', 'team', 'bookings', 'gallery', 'contact', 'settings'];
+                if (!required.every(key => key in backup)) {
+                    throw new Error('Invalid backup file structure');
+                }
+                
+                // Restore data
+                await Promise.all([
+                    fetch('/api/restore/services', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(backup.services)
+                    }),
+                    fetch('/api/restore/team', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(backup.team)
+                    }),
+                    fetch('/api/restore/bookings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(backup.bookings)
+                    }),
+                    fetch('/api/restore/gallery', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(backup.gallery)
+                    }),
+                    fetch('/api/restore/contact', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(backup.contact)
+                    }),
+                    fetch('/api/restore/settings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(backup.settings)
+                    })
+                ]);
+                
+                // Log activity
+                const activity = new Activity({
+                    description: 'Database restored from backup',
+                    timestamp: new Date()
+                });
+                await activity.save();
+                
+                alert('Data restored successfully');
+                window.location.reload();
+            } catch (error) {
+                console.error('Error restoring data:', error);
+                alert('Failed to restore data. Please ensure the backup file is valid.');
+            }
+        };
+        reader.readAsText(file);
+    } catch (error) {
+        console.error('Error restoring data:', error);
+        alert('Failed to restore data. Please try again.');
+    }
+}
+
 // Utility Functions
 function handleLogout() {
     localStorage.removeItem('token');
@@ -368,3 +510,41 @@ window.onclick = function(event) {
         event.target.style.display = 'none';
     }
 };
+
+// Map initialization
+function initMaps() {
+    // Sandnes Map
+    const sandnesMap = new google.maps.Map(document.getElementById('sandnes-map'), {
+        zoom: 15,
+        center: { lat: 58.8517, lng: 5.7347 } // Sandnes coordinates
+    });
+    
+    // Klepp Map
+    const kleppMap = new google.maps.Map(document.getElementById('klepp-map'), {
+        zoom: 15,
+        center: { lat: 58.7889, lng: 5.6345 } // Klepp coordinates
+    });
+    
+    // Add markers when addresses are updated
+    document.getElementById('sandnes-address').addEventListener('change', function() {
+        updateMapMarker(this.value, sandnesMap, 'Sandnes Branch');
+    });
+    
+    document.getElementById('klepp-address').addEventListener('change', function() {
+        updateMapMarker(this.value, kleppMap, 'Klepp Branch');
+    });
+}
+
+function updateMapMarker(address, map, title) {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: address }, (results, status) => {
+        if (status === 'OK') {
+            map.setCenter(results[0].geometry.location);
+            new google.maps.Marker({
+                map: map,
+                position: results[0].geometry.location,
+                title: title
+            });
+        }
+    });
+}
