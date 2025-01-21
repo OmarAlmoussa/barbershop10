@@ -43,49 +43,44 @@ document.addEventListener('DOMContentLoaded', () => {
     loadInventory();
     initializeSchedule();
 
-    // Check if user is logged in
-    if (!localStorage.getItem('token')) {
-        window.location.href = '/admin/login';
-    }
-
-    // Navigation
-    document.addEventListener('DOMContentLoaded', function() {
+    // Navigation functionality
+    function initializeNavigation() {
         // Hide all sections except dashboard initially
         document.querySelectorAll('.section').forEach(section => {
-            if (section.id !== 'dashboard-section') {
-                section.style.display = 'none';
-            }
+            section.style.display = section.id === 'dashboard-section' ? 'block' : 'none';
         });
 
         // Add click handlers for navigation
         document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const sectionId = this.dataset.section;
-                
-                if (sectionId) {
-                    // Hide all sections
-                    document.querySelectorAll('.section').forEach(section => {
-                        section.style.display = 'none';
-                    });
+            if (link.id !== 'logout') {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const sectionId = this.dataset.section;
                     
-                    // Show selected section
-                    const selectedSection = document.getElementById(sectionId);
-                    if (selectedSection) {
-                        selectedSection.style.display = 'block';
+                    if (sectionId) {
+                        // Hide all sections
+                        document.querySelectorAll('.section').forEach(section => {
+                            section.style.display = 'none';
+                        });
+                        
+                        // Show selected section
+                        const selectedSection = document.getElementById(sectionId);
+                        if (selectedSection) {
+                            selectedSection.style.display = 'block';
+                        }
+                        
+                        // Update active state in navigation
+                        document.querySelectorAll('.nav-link').forEach(navLink => {
+                            navLink.classList.remove('active');
+                        });
+                        this.classList.add('active');
                     }
-                    
-                    // Update active state in navigation
-                    document.querySelectorAll('.nav-link').forEach(navLink => {
-                        navLink.classList.remove('active');
-                    });
-                    this.classList.add('active');
-                }
-            });
+                });
+            }
         });
-    });
+    }
 
-    // Logout
+    // Logout handler
     document.getElementById('logout').addEventListener('click', (e) => {
         e.preventDefault();
         localStorage.removeItem('token');
