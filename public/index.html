@@ -3,32 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOON Barbershop</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Moon Barbershop - Professional Barber Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css">
 </head>
 <body>
-    <header>
-        <h1>Welcome to MOON Barbershop</h1>
-        <p>Your trusted barbershop in town</p>
-        <a href="/booking.html" class="btn">Book Now</a>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <img src="images/logo.png" alt="Moon Barbershop Logo">
+            </div>
+            <div class="nav-links">
+                <a href="#home" class="active">Hjem</a>
+                <a href="#services">Tjenester</a>
+                <a href="#team">Team</a>
+                <a href="#booking">Bestilling</a>
+                <a href="#contact">Kontakt</a>
+                <button class="lang-toggle" onclick="toggleLanguage()">
+                    <span class="lang-no">NO</span>/<span class="lang-en">EN</span>
+                </button>
+            </div>
+            <div class="mobile-menu-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </nav>
     </header>
-    <main>
-        <section id="services">
-            <h2>Our Services</h2>
-            <div id="services-list">
-                <!-- Services will be dynamically loaded -->
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content" data-aos="fade-up">
+            <h1>Velkommen til Moon Barbershop</h1>
+            <p>Din destinasjon for profesjonell hårpleie og barbering</p>
+            <a href="#booking" class="cta-button">Bestill Nå</a>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="container">
+            <h2 data-aos="fade-up">Våre Tjenester</h2>
+            <div class="services-grid" id="services-container">
+                <!-- Services will be loaded dynamically -->
             </div>
-        </section>
-        <section id="team">
-            <h2>Meet the Team</h2>
-            <div id="team-list">
-                <!-- Team members will be dynamically loaded -->
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section id="team" class="team">
+        <div class="container">
+            <h2 data-aos="fade-up">Vårt Team</h2>
+            <div class="team-grid" id="team-container">
+                <!-- Team members will be loaded dynamically -->
             </div>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2025 MOON Barbershop</p>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="gallery">
+        <div class="container">
+            <h2 data-aos="fade-up">Galleri</h2>
+            <div class="gallery-grid" id="gallery-container">
+                <!-- Gallery images will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Booking Section -->
+    <section id="booking" class="booking">
+        <div class="container">
+            <h2 data-aos="fade-up">Bestill Time</h2>
+            <form id="booking-form" class="booking-form">
+                <div class="form-group">
+                    <input type="text" id="name" name="name" required placeholder="Navn">
+                </div>
+                <div class="form-group">
+                    <input type="tel" id="phone" name="phone" required placeholder="Telefon">
+                </div>
+                <div class="form-group">
+                    <input type="email" id="email" name="email" required placeholder="E-post">
+                </div>
+                <div class="form-group">
+                    <select id="service" name="service" required>
+                        <option value="">Velg tjeneste</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <select id="barber" name="barber" required>
+                        <option value="">Velg frisør</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="date" id="date" name="date" required>
+                </div>
+                <div class="form-group">
+                    <select id="time" name="time" required>
+                        <option value="">Velg tid</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-button">Bestill Time</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2 data-aos="fade-up">Kontakt Oss</h2>
+            <div class="branches-grid">
+                <div class="branch" data-aos="fade-right">
+                    <h3>Sandnes</h3>
+                    <p class="address">Langgata 12, 4306 Sandnes</p>
+                    <p class="phone">+47 123 45 678</p>
+                    <div class="map" id="sandnes-map"></div>
+                </div>
+                <div class="branch" data-aos="fade-left">
+                    <h3>Klepp</h3>
+                    <p class="address">Jærvegen 34, 4352 Klepp</p>
+                    <p class="phone">+47 987 65 432</p>
+                    <div class="map" id="klepp-map"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Åpningstider</h3>
+                    <p>Mandag - Fredag: 09:00 - 19:00</p>
+                    <p>Lørdag: 10:00 - 17:00</p>
+                    <p>Søndag: Stengt</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Følg Oss</h3>
+                    <div class="social-links">
+                        <a href="#" target="_blank" class="social-link">Instagram</a>
+                        <a href="#" target="_blank" class="social-link">Facebook</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Hurtiglenker</h3>
+                    <a href="#services">Tjenester</a>
+                    <a href="#team">Team</a>
+                    <a href="#booking">Bestilling</a>
+                    <a href="#contact">Kontakt</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Moon Barbershop. Alle rettigheter reservert.</p>
+            </div>
+        </div>
     </footer>
-    <script src="main.js"></script>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
